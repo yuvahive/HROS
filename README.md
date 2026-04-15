@@ -1,103 +1,287 @@
-# HROS - Life Management Calendar
+# HROS - Human Resource Operating System
 
-A powerful, modern personal calendar and task management web app built with React and Tailwind CSS. Perfect for tracking meetings, calls, tasks, and daily schedules efficiently.
+A comprehensive personal calendar and HR management web application built with React, Vite, and Tailwind CSS. Designed for efficient event management, task tracking, HR operations, and team collaboration.
 
-## Features
+## 🎯 Quick Start (30 seconds)
 
-### 📅 Calendar Views
-- **Month View** - See all your events at a glance
-- **Week View** - Focused week planning
-- **Day View** - Detailed hourly schedule
+```bash
+# 1. Install dependencies
+npm install
 
-### ✅ Smart Task Management
-- Create events with title, description, date, and time
-- Categorize events (Meeting, Call, Task, Personal)
-- Set priorities (Low, Medium, High)
-- Mark tasks as completed
-- Track overdue tasks
-- Color-coded events for easy identification
+# 2. Start development server
+npm run dev
 
-### 🎯 Productivity Features
-- **Today's Schedule Panel** - See your day at a glance
-- **Upcoming Events** - Get a heads-up for events in the next 24 hours
-- **Smart Reminders** - Browser notifications 15 minutes before events
-- **Overdue Highlighting** - Never miss important tasks
+# 3. Open browser at http://localhost:5173
+```
 
-### 🔍 Search & Filter
-- Search events by title
+That's it! The app opens with a modern calendar interface ready for use.
+
+---
+
+## 📦 What's Included
+
+### Core Features
+
+#### 📅 **Calendar Views**
+- **Month View** - Full calendar overview with all events visible
+- **Week View** - Focused 7-day planning with hourly grid
+- **Day View** - Detailed hourly schedule with 15-minute increments
+
+#### ✅ **Event Management**
+- Create, edit, delete, and complete events
+- Event categories: Meeting, Call, Task, Personal
+- Priority levels: Low, Medium, High  
+- Time tracking and duration management
+- Event descriptions and detailed notes
+
+#### 🎯 **Smart Features**
+- **Today's Schedule** - Quick overview of your day
+- **Upcoming Events** - Next 24-hour preview
+- **Overdue Tracking** - Automatic highlighting of past-due tasks
+- **Browser Notifications** - 15-minute reminders before events
+- **Color-Coded Display** - Visual distinction by category/priority
+
+#### 🔍 **Search & Organization**
+- Full-text event search (press `/`)
 - Filter by category
-- Filter by priority
+- Filter by priority level
+- Quick event list in sidebar
 
-### ⌨️ Keyboard Shortcuts
-- `N` - Create new event
-- `D/W/M` - Switch between Day/Week/Month views
-- `T` - Jump to today
-- `/` - Focus search
+#### ⌨️ **Keyboard Shortcuts**
+| Shortcut | Action |
+|----------|--------|
+| `N` | Create new event |
+| `D` | Switch to Day view |
+| `W` | Switch to Week view |
+| `M` | Switch to Month view |
+| `T` | Jump to today |
+| `/` | Focus search |
 
-### 🌓 Dark/Light Mode
-- Automatic dark mode detection
-- Toggle between themes
-- Persistent theme preference
+#### 🌓 **User Preferences**
+- Light/Dark mode toggle
+- Automatic system theme detection
+- Persistent preference storage
 
-### 💾 Data Management
-- All data stored in browser's localStorage
-- Auto-loads on refresh
+#### 💾 **Data Management**
+- Browser localStorage for fast offline access
 - Export events as JSON
 - Import events from JSON file
+- Automatic data persistence
 
-### 📱 Responsive Design
-- Works perfectly on desktop
-- Mobile-optimized interface
+#### 📱 **Responsive Design**
+- Full desktop experience
+- Mobile-optimized layouts
 - Touch-friendly controls
+- Works on all modern browsers
 
-## Getting Started
+---
 
-### Prerequisites
-- Node.js (v14+)
-- npm or yarn
+## 📂 Project Structure
+
+```
+HROS/
+├── src/
+│   ├── components/          (9 React components)
+│   │   ├── HROSDashboard.jsx      (Main app container)
+│   │   ├── LoginPage.jsx          (Authentication)
+│   │   ├── DayView.jsx            (Day calendar view)
+│   │   ├── WeekView.jsx           (Week calendar view)
+│   │   ├── MonthView.jsx          (Month calendar view)
+│   │   ├── EventModal.jsx         (Event creation/edit)
+│   │   ├── Header.jsx             (Top navigation)
+│   │   ├── Sidebar.jsx            (Left navigation)
+│   │   └── [Other boards]         (Specialized views)
+│   │
+│   ├── hooks/              (4 custom React hooks)
+│   │   ├── useEvents.js           (Event state management)
+│   │   ├── useDarkMode.js         (Theme management)
+│   │   ├── useKeyboardShortcuts.js (Keyboard handling)
+│   │   └── useNotifications.js    (Browser notifications)
+│   │
+│   ├── utils/              (5+ utility modules)
+│   │   ├── storage.js             (localStorage API)
+│   │   ├── dateUtils.js           (Date/time helpers)
+│   │   ├── eventHelpers.js        (Event logic)
+│   │   ├── constants.js           (App constants)
+│   │   ├── sampleData.js          (Demo data)
+│   │   └── [More utilities]
+│   │
+│   ├── context/            (React Context)
+│   │   └── AuthContext.jsx        (Auth state management)
+│   │
+│   ├── styles/             (Tailwind CSS)
+│   │   └── index.css
+│   │
+│   ├── App.jsx            (Root component)
+│   └── main.jsx           (Entry point)
+│
+├── public/                 (Static assets)
+├── package.json           (Dependencies & scripts)
+├── vite.config.js         (Vite bundler config)
+├── tailwind.config.js     (Tailwind CSS config)
+├── postcss.config.js      (PostCSS plugins)
+└── README.md             (This file)
+```
+
+---
+
+## 🛠️ Development
 
 ### Installation
 
-1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/HROS.git
-cd HROS
-```
-
-2. Install dependencies
-```bash
+# Install dependencies
 npm install
 ```
 
-3. Start the development server
+### Development Server
+
 ```bash
+# Start dev server with hot reload
 npm run dev
 ```
 
-4. Open your browser and navigate to `http://localhost:5173`
+Server runs at `http://localhost:5173`
 
-## Building for Production
+### Production Build
 
 ```bash
+# Create optimized production build
 npm run build
 ```
 
-This creates an optimized production build in the `dist` folder.
+Output is in the `dist/` folder.
 
-## Deploying to GitHub Pages
+### Preview Build
 
-1. Update the `vite.config.js` file with your repository name:
+```bash
+# Test production build locally
+npm run preview
+```
+
+---
+
+## 🚀 Deployment
+
+### Deploy to GitHub Pages
+
+1. Update `vite.config.js` with your repository name:
 ```javascript
 export default defineConfig({
   base: '/your-repo-name/',
-  ...
+  // ... rest of config
 })
 ```
 
-2. Deploy to GitHub Pages:
+2. Deploy:
 ```bash
 npm run deploy
 ```
+
+### Deploy to Other Platforms
+
+The `dist/` folder can be deployed to:
+- Vercel
+- Netlify
+- GitHub Pages
+- Any static hosting service
+
+---
+
+## 📚 Documentation
+
+This project includes comprehensive documentation:
+
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System design and architecture overview
+- **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)** - Development guidelines and code structure
+- **[USER_GUIDE_DETAILED.md](USER_GUIDE_DETAILED.md)** - Complete user documentation
+- **[AUTHENTICATION_GUIDE.md](AUTHENTICATION_GUIDE.md)** - Authentication system details
+- **[HROS_SYSTEM_GUIDE.md](HROS_SYSTEM_GUIDE.md)** - Full system reference
+- **[COMPONENTS.md](COMPONENTS.md)** - Component documentation
+- **[DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)** - Complete documentation index
+
+---
+
+## 🔐 Authentication
+
+HROS supports multiple authentication methods:
+
+- **Password Authentication** - Traditional email/password login
+- **IDP Authentication** - Google, Microsoft, Okta, Auth0
+- **Role-Based Access** - Admin, Employee, Manager roles
+
+See [AUTHENTICATION_GUIDE.md](AUTHENTICATION_GUIDE.md) for setup details.
+
+---
+
+## 💻 Technology Stack
+
+- **Frontend Framework**: React 18
+- **Build Tool**: Vite 4
+- **Styling**: Tailwind CSS 3
+- **Icons**: Lucide React
+- **Data Storage**: Browser localStorage
+- **Utilities**: clsx for conditional classes
+
+---
+
+## 📋 Dependencies
+
+```json
+{
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "lucide-react": "^0.263.1",
+    "clsx": "^2.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.0.0",
+    "vite": "^4.3.0",
+    "tailwindcss": "^3.3.0",
+    "postcss": "^8.4.24",
+    "autoprefixer": "^10.4.14",
+    "gh-pages": "^5.0.0"
+  }
+}
+```
+
+---
+
+## 📝 License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+## 💡 Tips & Tricks
+
+### Keyboard Power User
+Press `/` to search, then use arrow keys to navigate results quickly.
+
+### Dark Mode
+The app automatically detects your system theme preference but can be toggled manually.
+
+### Data Backup
+Regularly export your events to backup. Use the export feature in settings.
+
+### Sample Data
+On first load, sample events are provided to demonstrate features.
+
+---
+
+## 🙋 Support
+
+For detailed information on any feature:
+1. Check [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) for the full doc index
+2. Review the [USER_GUIDE_DETAILED.md](USER_GUIDE_DETAILED.md) for user features
+3. See [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) for development help
+
+---
+
+**Last Updated**: April 2026  
+**Version**: 1.0.0  
+**Status**: Production Ready ✅
 
 Or manually:
 ```bash
