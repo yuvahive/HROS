@@ -13,11 +13,11 @@ export default function ActionItemsBoard() {
   const [selectedAction, setSelectedAction] = useState(null)
 
   const statuses = [
-    { id: 'new', title: 'New Decisions', icon: '💡', color: 'blue' },
-    { id: 'assigned', title: 'Assigned', icon: '👤', color: 'purple' },
-    { id: 'in-progress', title: 'In Progress', icon: '⏳', color: 'yellow' },
-    { id: 'blocked', title: 'Blocked', icon: '🚧', color: 'red' },
-    { id: 'completed', title: 'Completed', icon: '✅', color: 'green' }
+    { id: 'new', title: 'New Decisions', icon: 'IDEA', color: 'blue' },
+    { id: 'assigned', title: 'Assigned', icon: 'USER', color: 'purple' },
+    { id: 'in-progress', title: 'In Progress', icon: 'WAIT', color: 'yellow' },
+    { id: 'blocked', title: 'Blocked', icon: 'BLOCK', color: 'red' },
+    { id: 'completed', title: 'Completed', icon: 'DONE', color: 'green' }
   ]
 
   // Load action items
@@ -286,7 +286,7 @@ function ActionItemForm({ isOpen, onClose, onSave, initialData = null }) {
         <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white">
           <h2 className="text-2xl font-bold">{initialData ? 'Edit Action Item' : 'New Action Item'}</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            ✕
+            x
           </button>
         </div>
 
@@ -304,7 +304,7 @@ function ActionItemForm({ isOpen, onClose, onSave, initialData = null }) {
               name="title"
               value={formData.title}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 ${errors.title ? 'border-red-500' : 'border-gray-300'}`}
+              className={`w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400 ${errors.title ? 'border-red-500' : 'border-gray-300'}`}
               placeholder="Action title"
             />
             {errors.title && <p className="text-red-600 text-xs mt-1">{errors.title}</p>}
@@ -318,7 +318,7 @@ function ActionItemForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="owner"
                 value={formData.owner}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 ${errors.owner ? 'border-red-500' : 'border-gray-300'}`}
+                className={`w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400 ${errors.owner ? 'border-red-500' : 'border-gray-300'}`}
                 placeholder="Responsible person"
               />
               {errors.owner && <p className="text-red-600 text-xs mt-1">{errors.owner}</p>}
@@ -331,7 +331,7 @@ function ActionItemForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="dueDate"
                 value={formData.dueDate}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg bg-white text-gray-900 ${errors.dueDate ? 'border-red-500' : 'border-gray-300'}`}
+                className={`w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 ${errors.dueDate ? 'border-red-500' : 'border-gray-300'}`}
               />
               {errors.dueDate && <p className="text-red-600 text-xs mt-1">{errors.dueDate}</p>}
             </div>
@@ -342,7 +342,7 @@ function ActionItemForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
               >
                 <option value="new">New Decision</option>
                 <option value="assigned">Assigned</option>
@@ -358,7 +358,7 @@ function ActionItemForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="priority"
                 value={formData.priority}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -373,7 +373,7 @@ function ActionItemForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="category"
                 value={formData.category}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
               >
                 <option value="follow-up">Follow-up</option>
                 <option value="decision">Decision</option>
@@ -388,7 +388,7 @@ function ActionItemForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="decisionContext"
                 value={formData.decisionContext}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
                 placeholder="e.g., Q1 Planning, Hiring Policy"
               />
             </div>
@@ -401,7 +401,7 @@ function ActionItemForm({ isOpen, onClose, onSave, initialData = null }) {
               value={formData.description}
               onChange={handleChange}
               rows="2"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
               placeholder="What needs to be done?"
             />
           </div>
@@ -413,7 +413,7 @@ function ActionItemForm({ isOpen, onClose, onSave, initialData = null }) {
               value={formData.notes}
               onChange={handleChange}
               rows="2"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
               placeholder="Additional context or notes..."
             />
           </div>
@@ -438,3 +438,4 @@ function ActionItemForm({ isOpen, onClose, onSave, initialData = null }) {
     </div>
   )
 }
+

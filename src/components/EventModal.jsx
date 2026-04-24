@@ -243,3 +243,4 @@ export const EventModal = ({ isOpen, onClose, onSave, initialEvent, selectedDate
 };
 
 export default EventModal;
+

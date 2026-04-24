@@ -14,10 +14,10 @@ export default function DailyWorkBoard() {
   const [selectedColumnId, setSelectedColumnId] = useState('today')
 
   const columns = [
-    { id: 'today', title: 'Today', icon: '📋', color: 'blue' },
-    { id: 'blockers', title: 'Blockers', icon: '🚫', color: 'red' },
-    { id: 'completed', title: 'Completed', icon: '✅', color: 'green' },
-    { id: 'notes', title: 'Notes', icon: '📝', color: 'gray' }
+    { id: 'today', title: 'Today', icon: '[Today]', color: 'blue' },
+    { id: 'blockers', title: 'Blockers', icon: '[Block]', color: 'red' },
+    { id: 'completed', title: 'Completed', icon: '[Done]', color: 'green' },
+    { id: 'notes', title: 'Notes', icon: '[Notes]', color: 'gray' }
   ]
 
   // Load work logs from IndexedDB
@@ -323,7 +323,7 @@ function DailyWorkForm({ isOpen, onClose, onSave, initialColumnId }) {
               name="personName"
               value={formData.personName}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-md text-sm bg-white text-gray-900 placeholder-gray-400"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
               placeholder="Enter person name"
             />
             {errors.personName && <p className="text-xs text-red-600 mt-1">{errors.personName}</p>}
@@ -335,7 +335,7 @@ function DailyWorkForm({ isOpen, onClose, onSave, initialColumnId }) {
               name="taskName"
               value={formData.taskName}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-md text-sm bg-white text-gray-900 placeholder-gray-400"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
               placeholder="Enter task"
             />
             {errors.taskName && <p className="text-xs text-red-600 mt-1">{errors.taskName}</p>}
@@ -351,7 +351,7 @@ function DailyWorkForm({ isOpen, onClose, onSave, initialColumnId }) {
                 name="hoursWorked"
                 value={formData.hoursWorked}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border rounded-md text-sm bg-white text-gray-900 placeholder-gray-400"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
               />
               {errors.hoursWorked && <p className="text-xs text-red-600 mt-1">{errors.hoursWorked}</p>}
             </div>
@@ -364,7 +364,7 @@ function DailyWorkForm({ isOpen, onClose, onSave, initialColumnId }) {
                 name="hoursEstimated"
                 value={formData.hoursEstimated}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border rounded-md text-sm bg-white text-gray-900 placeholder-gray-400"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
               />
               {errors.hoursEstimated && (
                 <p className="text-xs text-red-600 mt-1">{errors.hoursEstimated}</p>
@@ -381,9 +381,9 @@ function DailyWorkForm({ isOpen, onClose, onSave, initialColumnId }) {
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
             >
               <option value="">Select mood</option>
-              <option value="😊">😊 Positive</option>
-              <option value="😐">😐 Neutral</option>
-              <option value="😤">😤 Stressed</option>
+              <option value="positive">Positive</option>
+              <option value="neutral">Neutral</option>
+              <option value="stressed">Stressed</option>
             </select>
           </div>
 
@@ -406,3 +406,4 @@ function DailyWorkForm({ isOpen, onClose, onSave, initialColumnId }) {
     </div>
   )
 }
+

@@ -15,10 +15,10 @@ export default function TeamPulseBoard() {
   const [selectedColumnId, setSelectedColumnId] = useState('green')
 
   const columns = [
-    { id: 'green', title: 'Green ✅', icon: '😊', color: 'green', sentiment: 'green' },
-    { id: 'yellow', title: 'Yellow ⚠️', icon: '😐', color: 'yellow', sentiment: 'yellow' },
-    { id: 'red', title: 'Red 🔴', icon: '😤', color: 'red', sentiment: 'red' },
-    { id: 'onleave', title: 'On Leave', icon: '🏖️', color: 'gray', sentiment: 'gray' }
+    { id: 'green', title: 'Green', icon: ':)', color: 'green', sentiment: 'green' },
+    { id: 'yellow', title: 'Yellow', icon: ':|', color: 'yellow', sentiment: 'yellow' },
+    { id: 'red', title: 'Red', icon: ':(', color: 'red', sentiment: 'red' },
+    { id: 'onleave', title: 'On Leave', icon: '[Leave]', color: 'gray', sentiment: 'gray' }
   ]
 
   useEffect(() => {
@@ -207,8 +207,8 @@ export default function TeamPulseBoard() {
           </div>
         </div>
         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
-          <strong>Red Flags Auto-Detected:</strong> Last check-in {'>'}30 days • Working {'>'}45 hrs/week •
-          No days off {'>'}3 months • Mood decline
+          <strong>Red Flags Auto-Detected:</strong> Last check-in {'>'}30 days - Working {'>'}45 hrs/week -
+          No days off {'>'}3 months - Mood decline
         </div>
       </div>
 
@@ -329,7 +329,7 @@ function TeamPulseForm({ isOpen, onClose, onSave, initialColumnId }) {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-md text-sm bg-white text-gray-900 placeholder-gray-400"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
               placeholder="Enter team member name"
             />
             {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name}</p>}
@@ -341,7 +341,7 @@ function TeamPulseForm({ isOpen, onClose, onSave, initialColumnId }) {
               name="role"
               value={formData.role}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-md text-sm bg-white text-gray-900 placeholder-gray-400"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
               placeholder="Enter role"
             />
             {errors.role && <p className="text-xs text-red-600 mt-1">{errors.role}</p>}
@@ -353,7 +353,7 @@ function TeamPulseForm({ isOpen, onClose, onSave, initialColumnId }) {
               name="team"
               value={formData.team}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-md text-sm bg-white text-gray-900 placeholder-gray-400"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
               placeholder="Enter team"
             />
             {errors.team && <p className="text-xs text-red-600 mt-1">{errors.team}</p>}
@@ -365,7 +365,7 @@ function TeamPulseForm({ isOpen, onClose, onSave, initialColumnId }) {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-md text-sm bg-white text-gray-900 placeholder-gray-400"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
               placeholder="Optional email"
             />
           </div>
@@ -376,7 +376,7 @@ function TeamPulseForm({ isOpen, onClose, onSave, initialColumnId }) {
               name="skills"
               value={formData.skills}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-md text-sm bg-white text-gray-900 placeholder-gray-400"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
               placeholder="React, Communication, SQL"
             />
             <p className="text-xs text-gray-500 mt-1">Comma-separated values</p>
@@ -401,3 +401,4 @@ function TeamPulseForm({ isOpen, onClose, onSave, initialColumnId }) {
     </div>
   )
 }
+

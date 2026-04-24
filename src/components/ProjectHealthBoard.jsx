@@ -13,12 +13,12 @@ export default function ProjectHealthBoard() {
   const [selectedProject, setSelectedProject] = useState(null)
 
   const statuses = [
-    { id: 'planning', title: 'Planning', icon: '📋', color: 'blue' },
-    { id: 'in-progress', title: 'In Progress', icon: '🚀', color: 'yellow' },
-    { id: 'at-risk', title: 'At Risk', icon: '⚠️', color: 'orange' },
-    { id: 'blocked', title: 'Blocked', icon: '🚧', color: 'red' },
-    { id: 'completed', title: 'Completed', icon: '✅', color: 'green' },
-    { id: 'on-hold', title: 'On Hold', icon: '⏸️', color: 'gray' }
+    { id: 'planning', title: 'Planning', icon: 'PLAN', color: 'blue' },
+    { id: 'in-progress', title: 'In Progress', icon: 'RUN', color: 'yellow' },
+    { id: 'at-risk', title: 'At Risk', icon: 'RISK', color: 'orange' },
+    { id: 'blocked', title: 'Blocked', icon: 'BLOCK', color: 'red' },
+    { id: 'completed', title: 'Completed', icon: 'DONE', color: 'green' },
+    { id: 'on-hold', title: 'On Hold', icon: 'HOLD', color: 'gray' }
   ]
 
   // Load project data
@@ -291,7 +291,7 @@ function ProjectForm({ isOpen, onClose, onSave, initialData = null }) {
         <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white">
           <h2 className="text-2xl font-bold">{initialData ? 'Edit Project' : 'New Project'}</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            ✕
+            x
           </button>
         </div>
 
@@ -304,7 +304,7 @@ function ProjectForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
+                className={`w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400 ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
                 placeholder="Project name"
               />
               {errors.name && <p className="text-red-600 text-xs mt-1">{errors.name}</p>}
@@ -317,7 +317,7 @@ function ProjectForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="owner"
                 value={formData.owner}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 ${errors.owner ? 'border-red-500' : 'border-gray-300'}`}
+                className={`w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400 ${errors.owner ? 'border-red-500' : 'border-gray-300'}`}
                 placeholder="Project lead"
               />
               {errors.owner && <p className="text-red-600 text-xs mt-1">{errors.owner}</p>}
@@ -329,7 +329,7 @@ function ProjectForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
               >
                 <option value="planning">Planning</option>
                 <option value="in-progress">In Progress</option>
@@ -346,7 +346,7 @@ function ProjectForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="priority"
                 value={formData.priority}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -362,7 +362,7 @@ function ProjectForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="startDate"
                 value={formData.startDate}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
               />
             </div>
 
@@ -373,7 +373,7 @@ function ProjectForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="dueDate"
                 value={formData.dueDate}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg bg-white text-gray-900 ${errors.dueDate ? 'border-red-500' : 'border-gray-300'}`}
+                className={`w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 ${errors.dueDate ? 'border-red-500' : 'border-gray-300'}`}
               />
               {errors.dueDate && <p className="text-red-600 text-xs mt-1">{errors.dueDate}</p>}
             </div>
@@ -399,7 +399,7 @@ function ProjectForm({ isOpen, onClose, onSave, initialData = null }) {
               value={formData.description}
               onChange={handleChange}
               rows="2"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
               placeholder="Project description"
             />
           </div>
@@ -412,7 +412,7 @@ function ProjectForm({ isOpen, onClose, onSave, initialData = null }) {
                 value={blockerInput}
                 onChange={(e) => setBlockerInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddBlocker())}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900 placeholder-gray-400"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
                 placeholder="Add blocker..."
               />
               <button
@@ -427,13 +427,13 @@ function ProjectForm({ isOpen, onClose, onSave, initialData = null }) {
               <div className="space-y-1">
                 {formData.blockers.map((blocker) => (
                   <div key={blocker.id} className="flex items-center justify-between bg-red-50 p-2 rounded text-xs border border-red-200">
-                    <span>🚧 {blocker.text}</span>
+                    <span>BLOCK {blocker.text}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveBlocker(blocker.id)}
                       className="text-red-600 hover:text-red-800"
                     >
-                      ✕
+                      x
                     </button>
                   </div>
                 ))}
@@ -448,7 +448,7 @@ function ProjectForm({ isOpen, onClose, onSave, initialData = null }) {
               value={formData.notes}
               onChange={handleChange}
               rows="2"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
               placeholder="Additional notes..."
             />
           </div>
@@ -473,3 +473,4 @@ function ProjectForm({ isOpen, onClose, onSave, initialData = null }) {
     </div>
   )
 }
+

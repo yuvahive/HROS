@@ -70,7 +70,7 @@ export default function LoginPage() {
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
-              📝 Password Login
+              Password Login
             </button>
             <button
               onClick={() => {
@@ -83,7 +83,7 @@ export default function LoginPage() {
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
-              🔐 IDP Login
+              IDP Login
             </button>
           </div>
 
@@ -129,7 +129,7 @@ export default function LoginPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-                      placeholder="••••••••"
+                      placeholder="********"
                       required
                       disabled={loading}
                     />
@@ -138,7 +138,7 @@ export default function LoginPage() {
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                     >
-                      {showPassword ? '👁️' : '👁️‍🗨️'}
+                      {showPassword ? 'Hide' : 'Show'}
                     </button>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">Demo: admin123</p>
@@ -149,7 +149,7 @@ export default function LoginPage() {
                 {/* IDP Login Form */}
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-sm text-blue-900">
-                    <strong>✓ IDP Login Enabled</strong><br/>
+                    <strong>IDP Login Enabled</strong><br/>
                     Sign in with your assigned identity provider (Google, Microsoft, Okta, etc.)
                   </p>
                 </div>
@@ -181,14 +181,14 @@ export default function LoginPage() {
                     id="idp-provider"
                     value={selectedIDP}
                     onChange={(e) => setSelectedIDP(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
                     disabled={loading}
                   >
-                    <option value="google">🔷 Google</option>
-                    <option value="microsoft">☁️ Microsoft Entra</option>
-                    <option value="okta">🔒 Okta</option>
-                    <option value="auth0">🛡️ Auth0</option>
-                    <option value="custom">⚙️ Custom OIDC</option>
+                    <option value="google">Google</option>
+                    <option value="microsoft">Microsoft Entra</option>
+                    <option value="okta">Okta</option>
+                    <option value="auth0">Auth0</option>
+                    <option value="custom">Custom OIDC</option>
                   </select>
                   <p className="text-xs text-gray-500 mt-1">
                     Contact HR if your provider isn't listed
@@ -256,7 +256,7 @@ export default function LoginPage() {
         {/* Info Box */}
         <div className="mt-6 p-4 bg-white bg-opacity-10 rounded-lg backdrop-blur-md text-white text-sm">
           <p>
-            <strong>🔐 Security Note:</strong> This is a demo system with frontend-only authentication. For production, use proper
+            <strong>Security Note:</strong> This is a demo system with frontend-only authentication. For production, use proper
             OAuth/SAML integration.
           </p>
         </div>
@@ -264,3 +264,4 @@ export default function LoginPage() {
     </div>
   )
 }
+

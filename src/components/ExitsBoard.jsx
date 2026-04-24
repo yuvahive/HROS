@@ -179,7 +179,7 @@ export default function ExitsBoard() {
                     <div>
                       <h3 className="font-semibold text-gray-900 text-lg">{exit.name}</h3>
                       <p className="text-xs text-gray-600 mt-0.5">
-                        {exit.role} • {exit.department}
+                        {exit.role} - {exit.department}
                       </p>
                     </div>
                     <div className="flex gap-1">
@@ -297,9 +297,9 @@ export default function ExitsBoard() {
                             }}
                             className="w-full px-2 py-1 rounded border border-gray-300 text-xs"
                           >
-                            <option value="negative">👎 Negative</option>
-                            <option value="neutral">😐 Neutral</option>
-                            <option value="positive">👍 Positive</option>
+                            <option value="negative">Negative</option>
+                            <option value="neutral">Neutral</option>
+                            <option value="positive">Positive</option>
                           </select>
                         </div>
                         <p className="text-gray-600">Exit Feedback</p>
@@ -405,7 +405,7 @@ function ExitForm({ isOpen, onClose, onSave, initialData = null }) {
         <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white">
           <h2 className="text-2xl font-bold">Record Departure</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            ✕
+            x
           </button>
         </div>
 
@@ -418,7 +418,7 @@ function ExitForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
+                className={`w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 ${errors.name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}`}
                 placeholder="Name"
               />
               {errors.name && <p className="text-red-600 text-xs mt-1">{errors.name}</p>}
@@ -431,7 +431,7 @@ function ExitForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg ${errors.role ? 'border-red-500' : 'border-gray-300'}`}
+                className={`w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 ${errors.role ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}`}
                 placeholder="Role"
               />
               {errors.role && <p className="text-red-600 text-xs mt-1">{errors.role}</p>}
@@ -444,7 +444,7 @@ function ExitForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="department"
                 value={formData.department}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
                 placeholder="Department"
               />
             </div>
@@ -456,7 +456,7 @@ function ExitForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="lastDay"
                 value={formData.lastDay}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
               />
             </div>
 
@@ -466,7 +466,7 @@ function ExitForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="reason"
                 value={formData.reason}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
               >
                 <option value="voluntary">Voluntary</option>
                 <option value="involuntary">Involuntary</option>
@@ -483,7 +483,7 @@ function ExitForm({ isOpen, onClose, onSave, initialData = null }) {
               name="manager"
               value={formData.manager}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
               placeholder="Manager name"
             />
           </div>
@@ -495,7 +495,7 @@ function ExitForm({ isOpen, onClose, onSave, initialData = null }) {
               value={formData.notes}
               onChange={handleChange}
               rows="2"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
               placeholder="Additional notes..."
             />
           </div>
@@ -520,3 +520,4 @@ function ExitForm({ isOpen, onClose, onSave, initialData = null }) {
     </div>
   )
 }
+
