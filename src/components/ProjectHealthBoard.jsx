@@ -13,12 +13,12 @@ export default function ProjectHealthBoard() {
   const [selectedProject, setSelectedProject] = useState(null)
 
   const statuses = [
-    { id: 'planning', title: 'Planning', icon: 'PLAN', color: 'blue' },
-    { id: 'in-progress', title: 'In Progress', icon: 'RUN', color: 'yellow' },
-    { id: 'at-risk', title: 'At Risk', icon: 'RISK', color: 'orange' },
-    { id: 'blocked', title: 'Blocked', icon: 'BLOCK', color: 'red' },
-    { id: 'completed', title: 'Completed', icon: 'DONE', color: 'green' },
-    { id: 'on-hold', title: 'On Hold', icon: 'HOLD', color: 'gray' }
+    { id: 'planning', title: 'Planning', icon: '📝', color: 'blue' },
+    { id: 'in-progress', title: 'In Progress', icon: '🚀', color: 'yellow' },
+    { id: 'at-risk', title: 'At Risk', icon: '⚠️', color: 'orange' },
+    { id: 'blocked', title: 'Blocked', icon: '🛑', color: 'red' },
+    { id: 'completed', title: 'Completed', icon: '✅', color: 'green' },
+    { id: 'on-hold', title: 'On Hold', icon: '⏸️', color: 'gray' }
   ]
 
   // Load project data
@@ -174,7 +174,16 @@ export default function ProjectHealthBoard() {
           onDragEnd={handleDragEnd}
           cardContentRenderer={(card) => (
             <div className="space-y-1">
-              <h4 className="font-semibold text-sm text-gray-900">{card.title}</h4>
+              <div className="flex items-center gap-2">
+                <span className="text-lg">
+                  {card.status === 'planning' ? '📝' : 
+                   card.status === 'in-progress' ? '🚀' : 
+                   card.status === 'at-risk' ? '⚠️' : 
+                   card.status === 'blocked' ? '🛑' : 
+                   card.status === 'completed' ? '✅' : '⏸️'}
+                </span>
+                <h4 className="font-semibold text-sm text-gray-900">{card.title}</h4>
+              </div>
               <p className="text-xs text-gray-700">{card.subtitle}</p>
               {card.details &&
                 card.details.map((detail, idx) => (

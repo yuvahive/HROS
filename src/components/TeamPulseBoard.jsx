@@ -15,10 +15,10 @@ export default function TeamPulseBoard() {
   const [selectedColumnId, setSelectedColumnId] = useState('green')
 
   const columns = [
-    { id: 'green', title: 'Green', icon: ':)', color: 'green', sentiment: 'green' },
-    { id: 'yellow', title: 'Yellow', icon: ':|', color: 'yellow', sentiment: 'yellow' },
-    { id: 'red', title: 'Red', icon: ':(', color: 'red', sentiment: 'red' },
-    { id: 'onleave', title: 'On Leave', icon: '[Leave]', color: 'gray', sentiment: 'gray' }
+    { id: 'green', title: 'Healthy', icon: '🟢', color: 'green', sentiment: 'green' },
+    { id: 'yellow', title: 'At Risk', icon: '🟡', color: 'yellow', sentiment: 'yellow' },
+    { id: 'red', title: 'Crucial', icon: '🔴', color: 'red', sentiment: 'red' },
+    { id: 'onleave', title: 'On Leave', icon: '🌴', color: 'gray', sentiment: 'gray' }
   ]
 
   useEffect(() => {
@@ -220,6 +220,37 @@ export default function TeamPulseBoard() {
           onCardDelete={handleCardDelete}
           onAddCard={handleAddCard}
           onDragEnd={handleDragEnd}
+          cardContentRenderer={(card) => (
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-lg" title={card.sentiment}>
+                  {card.sentiment === 'green' ? '😊' : 
+                   card.sentiment === 'yellow' ? '😐' : 
+                   card.sentiment === 'red' ? '😟' : '🌴'}
+                </span>
+                <h4 className="font-semibold text-sm text-gray-900">{card.title}</h4>
+              </div>
+              <p className="text-xs text-gray-700">{card.subtitle}</p>
+              {card.details &&
+                card.details.map((detail, idx) => (
+                  <p key={idx} className="text-xs text-gray-600">
+                    {detail}
+                  </p>
+                ))}
+              {card.tags && card.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {card.tags.map((tag, idx) => (
+                    <span 
+                      key={idx} 
+                      className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full border border-blue-100"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         />
       </div>
 

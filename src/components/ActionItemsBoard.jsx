@@ -13,11 +13,11 @@ export default function ActionItemsBoard() {
   const [selectedAction, setSelectedAction] = useState(null)
 
   const statuses = [
-    { id: 'new', title: 'New Decisions', icon: 'IDEA', color: 'blue' },
-    { id: 'assigned', title: 'Assigned', icon: 'USER', color: 'purple' },
-    { id: 'in-progress', title: 'In Progress', icon: 'WAIT', color: 'yellow' },
-    { id: 'blocked', title: 'Blocked', icon: 'BLOCK', color: 'red' },
-    { id: 'completed', title: 'Completed', icon: 'DONE', color: 'green' }
+    { id: 'new', title: 'New Decisions', icon: '💡', color: 'blue' },
+    { id: 'assigned', title: 'Assigned', icon: '👤', color: 'purple' },
+    { id: 'in-progress', title: 'In Progress', icon: '⏳', color: 'yellow' },
+    { id: 'blocked', title: 'Blocked', icon: '🛑', color: 'red' },
+    { id: 'completed', title: 'Completed', icon: '✅', color: 'green' }
   ]
 
   // Load action items
@@ -184,7 +184,15 @@ export default function ActionItemsBoard() {
           onDragEnd={handleDragEnd}
           cardContentRenderer={(card) => (
             <div className="space-y-1">
-              <h4 className="font-semibold text-sm text-gray-900">{card.title}</h4>
+              <div className="flex items-center gap-2">
+                <span className="text-lg">
+                  {card.status === 'new' ? '💡' : 
+                   card.status === 'assigned' ? '👤' : 
+                   card.status === 'in-progress' ? '⏳' : 
+                   card.status === 'blocked' ? '🛑' : '✅'}
+                </span>
+                <h4 className="font-semibold text-sm text-gray-900">{card.title}</h4>
+              </div>
               <p className="text-xs text-gray-700">{card.subtitle}</p>
               {card.details &&
                 card.details.map((detail, idx) => (

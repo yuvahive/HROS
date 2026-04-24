@@ -14,10 +14,10 @@ export default function DailyWorkBoard() {
   const [selectedColumnId, setSelectedColumnId] = useState('today')
 
   const columns = [
-    { id: 'today', title: 'Today', icon: '[Today]', color: 'blue' },
-    { id: 'blockers', title: 'Blockers', icon: '[Block]', color: 'red' },
-    { id: 'completed', title: 'Completed', icon: '[Done]', color: 'green' },
-    { id: 'notes', title: 'Notes', icon: '[Notes]', color: 'gray' }
+    { id: 'today', title: 'Today', icon: '📅', color: 'blue' },
+    { id: 'blockers', title: 'Blockers', icon: '🛑', color: 'red' },
+    { id: 'completed', title: 'Completed', icon: '✅', color: 'green' },
+    { id: 'notes', title: 'Notes', icon: '📝', color: 'gray' }
   ]
 
   // Load work logs from IndexedDB
@@ -212,6 +212,24 @@ export default function DailyWorkBoard() {
           onCardDelete={handleCardDelete}
           onAddCard={handleAddCard}
           onDragEnd={handleDragEnd}
+          cardContentRenderer={(card) => (
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">
+                  {card.data.status === 'blocked' ? '🛑' : 
+                   card.data.status === 'done' ? '✅' : '📅'}
+                </span>
+                <h4 className="font-semibold text-sm text-gray-900">{card.title}</h4>
+              </div>
+              <p className="text-xs text-gray-700">{card.subtitle}</p>
+              {card.details &&
+                card.details.map((detail, idx) => (
+                  <p key={idx} className="text-xs text-gray-600">
+                    {detail}
+                  </p>
+                ))}
+            </div>
+          )}
         />
       </div>
 

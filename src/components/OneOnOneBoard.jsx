@@ -72,6 +72,13 @@ export default function OneOnOneBoard() {
 
   // Handle card drag/drop to change status
   const handleDragEnd = async ({ card, targetColumn }) => {
+    // Determine the actual current status (fallback to data if moving for first time)
+    const sourceStatus = card.status || card.data.status
+
+    if (!sourceStatus || sourceStatus === targetColumn) {
+      return
+    }
+
     try {
       const updatedRecord = {
         ...card.data,
@@ -81,13 +88,20 @@ export default function OneOnOneBoard() {
 
       // Update local state
       const newCards = { ...meetingCards }
-      newCards[card.data.status].cards = newCards[card.data.status].cards.filter(
+      
+      // Remove from source column
+      newCards[sourceStatus].cards = newCards[sourceStatus].cards.filter(
         (c) => c.id !== card.id
       )
+      
+      // Add to target column with updated metadata
       newCards[targetColumn].cards.push({
         ...card,
-        status: targetColumn
+        status: targetColumn,
+        tags: [targetColumn === 'completed' ? '✓ Done' : 'Pending'],
+        data: updatedRecord
       })
+      
       setMeetingCards(newCards)
 
       console.log(`Moved ${card.title}'s 1:1 to ${targetColumn}`)
