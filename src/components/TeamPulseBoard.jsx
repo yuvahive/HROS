@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { AlertCircle, TrendingUp, Heart, Zap } from 'lucide-react'
 import KanbanBoard from './KanbanBoard'
-import { getAllFromDB, updateInDB, deleteFromDB } from '../utils/indexedDB'
+import { getAllFromDB, updateInDB, deleteFromDB, addToDB } from '../utils/indexedDB'
 import { STORES } from '../utils/indexedDB'
 import { AuthContext } from '../context/AuthContext'
+import { generateID } from '../utils/sampleData'
 
 // Team Performance / Pulse Board - Health monitoring
 export default function TeamPulseBoard() {
   const { currentUser } = useContext(AuthContext)
   const [pulseCards, setPulseCards] = useState({})
   const [loading, setLoading] = useState(true)
+  const [formOpen, setFormOpen] = useState(false)
+  const [selectedColumnId, setSelectedColumnId] = useState('green')
 
   const columns = [
     { id: 'green', title: 'Green ✅', icon: '😊', color: 'green', sentiment: 'green' },
@@ -126,6 +129,37 @@ export default function TeamPulseBoard() {
     }
   }
 
+  const handleAddCard = (columnId) => {
+    setSelectedColumnId(columnId)
+    setFormOpen(true)
+  }
+
+  const handleFormSave = (record, columnId) => {
+    const sentiment = columnId
+    const card = {
+      id: record.id,
+      title: record.name,
+      subtitle: record.role,
+      details: [
+        `Team: ${record.team}`,
+        'Last check-in: 0 days ago',
+        `Status: ${record.status}`
+      ],
+      sentiment,
+      status: sentiment,
+      data: record,
+      tags: record.skills ? record.skills.slice(0, 2) : []
+    }
+
+    setPulseCards((prev) => ({
+      ...prev,
+      [columnId]: {
+        ...prev[columnId],
+        cards: [...(prev[columnId]?.cards || []), card]
+      }
+    }))
+  }
+
   if (loading) {
     return <div className="p-8 text-center">Loading team pulse...</div>
   }
@@ -184,9 +218,185 @@ export default function TeamPulseBoard() {
           columns={boardColumns}
           onCardClick={(card) => console.log('Person clicked:', card)}
           onCardDelete={handleCardDelete}
-          onAddCard={() => console.log('Add not available')}
+          onAddCard={handleAddCard}
           onDragEnd={handleDragEnd}
         />
+      </div>
+
+      <TeamPulseForm
+        isOpen={formOpen}
+        onClose={() => setFormOpen(false)}
+        onSave={handleFormSave}
+        initialColumnId={selectedColumnId}
+      />
+    </div>
+  )
+}
+
+function TeamPulseForm({ isOpen, onClose, onSave, initialColumnId }) {
+  const [formData, setFormData] = useState({
+    name: '',
+    role: 'Team Member',
+    team: 'General',
+    email: '',
+    skills: ''
+  })
+  const [errors, setErrors] = useState({})
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        name: '',
+        role: 'Team Member',
+        team: 'General',
+        email: '',
+        skills: ''
+      })
+      setErrors({})
+    }
+  }, [isOpen])
+
+  if (!isOpen) return null
+
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    const newErrors = {}
+    if (!formData.name.trim()) newErrors.name = 'Name is required'
+    if (!formData.role.trim()) newErrors.role = 'Role is required'
+    if (!formData.team.trim()) newErrors.team = 'Team is required'
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+
+    const status = initialColumnId === 'onleave' ? 'on-leave' : 'active'
+    const parsedSkills = formData.skills
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+
+    const record = {
+      id: generateID('employee'),
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      role: formData.role.trim(),
+      team: formData.team.trim(),
+      status,
+      seniority: '',
+      manager: '',
+      startDate: new Date().toISOString().split('T')[0],
+      salary: 0,
+      equity: 0,
+      vestingStart: '',
+      vestingSchedule: 0,
+      skills: parsedSkills,
+      currentProjects: [],
+      lastCheckInDate: new Date().toISOString().split('T')[0],
+      nextCheckInDue: '',
+      notes: '',
+      redFlags: []
+    }
+
+    try {
+      await addToDB(STORES.people, record)
+      onSave(record, initialColumnId)
+      onClose()
+    } catch (error) {
+      setErrors({ submit: 'Failed to save team member' })
+      console.error('Error saving team member:', error)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+      <div className="bg-white w-full max-w-md rounded-lg shadow-xl border">
+        <div className="px-5 py-4 border-b">
+          <h3 className="text-lg font-semibold text-gray-900">Add Team Pulse Card</h3>
+          <p className="text-sm text-gray-600">Create a team member card for this column.</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-5 space-y-3 text-gray-900">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <input
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border rounded-md text-sm bg-white text-gray-900 placeholder-gray-400"
+              placeholder="Enter team member name"
+            />
+            {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+            <input
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border rounded-md text-sm bg-white text-gray-900 placeholder-gray-400"
+              placeholder="Enter role"
+            />
+            {errors.role && <p className="text-xs text-red-600 mt-1">{errors.role}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Team</label>
+            <input
+              name="team"
+              value={formData.team}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border rounded-md text-sm bg-white text-gray-900 placeholder-gray-400"
+              placeholder="Enter team"
+            />
+            {errors.team && <p className="text-xs text-red-600 mt-1">{errors.team}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border rounded-md text-sm bg-white text-gray-900 placeholder-gray-400"
+              placeholder="Optional email"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Skills</label>
+            <input
+              name="skills"
+              value={formData.skills}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border rounded-md text-sm bg-white text-gray-900 placeholder-gray-400"
+              placeholder="React, Communication, SQL"
+            />
+            <p className="text-xs text-gray-500 mt-1">Comma-separated values</p>
+          </div>
+
+          {errors.submit && <p className="text-sm text-red-600">{errors.submit}</p>}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm border rounded-md hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button type="submit" className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md">
+              Save Card
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )

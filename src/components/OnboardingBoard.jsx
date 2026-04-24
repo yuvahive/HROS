@@ -398,7 +398,7 @@ function OnboardingForm({ isOpen, onClose, onSave, initialData = null }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-gray-900">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
@@ -407,7 +407,7 @@ function OnboardingForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
+                className={`w-full px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
                 placeholder="John Doe"
               />
               {errors.name && <p className="text-red-600 text-xs mt-1">{errors.name}</p>}
@@ -420,7 +420,7 @@ function OnboardingForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg ${errors.role ? 'border-red-500' : 'border-gray-300'}`}
+                className={`w-full px-3 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 ${errors.role ? 'border-red-500' : 'border-gray-300'}`}
                 placeholder="Engineer"
               />
               {errors.role && <p className="text-red-600 text-xs mt-1">{errors.role}</p>}
@@ -433,7 +433,7 @@ function OnboardingForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="department"
                 value={formData.department}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400"
                 placeholder="Engineering"
               />
             </div>
@@ -445,7 +445,7 @@ function OnboardingForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="startDate"
                 value={formData.startDate}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
               />
             </div>
 
@@ -456,7 +456,7 @@ function OnboardingForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="manager"
                 value={formData.manager}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400"
                 placeholder="Manager name"
               />
             </div>
@@ -468,7 +468,7 @@ function OnboardingForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400"
                 placeholder="employee@company.com"
               />
             </div>
@@ -480,7 +480,7 @@ function OnboardingForm({ isOpen, onClose, onSave, initialData = null }) {
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400"
                 placeholder="+1234567890"
               />
             </div>
@@ -493,7 +493,7 @@ function OnboardingForm({ isOpen, onClose, onSave, initialData = null }) {
               name="mentor"
               value={formData.mentor}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400"
               placeholder="Mentor name"
             />
           </div>
@@ -505,7 +505,7 @@ function OnboardingForm({ isOpen, onClose, onSave, initialData = null }) {
               value={formData.notes}
               onChange={handleChange}
               rows="2"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400"
               placeholder="Additional notes..."
             />
           </div>
