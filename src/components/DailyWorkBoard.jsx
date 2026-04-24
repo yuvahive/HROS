@@ -1,18 +1,21 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { CheckCircle, AlertCircle, BarChart3 } from 'lucide-react'
 import KanbanBoard from './KanbanBoard'
-import { getAllFromDB, updateInDB, deleteFromDB } from '../utils/indexedDB'
+import { getAllFromDB, updateInDB, deleteFromDB, addToDB } from '../utils/indexedDB'
 import { STORES } from '../utils/indexedDB'
 import { AuthContext } from '../context/AuthContext'
+import { generateID } from '../utils/sampleData'
 
 export default function DailyWorkBoard() {
   const { currentUser } = useContext(AuthContext)
   const [workCards, setWorkCards] = useState({})
   const [loading, setLoading] = useState(true)
+  const [formOpen, setFormOpen] = useState(false)
+  const [selectedColumnId, setSelectedColumnId] = useState('today')
 
   const columns = [
-    { id: 'today', title: 'Today', icon: '📋', color: 'blue' },
-    { id: 'blockers', title: 'Blockers', icon: '🚫', color: 'red' },
+    { id: 'today', title: 'Today', icon: '📅', color: 'blue' },
+    { id: 'blockers', title: 'Blockers', icon: '🛑', color: 'red' },
     { id: 'completed', title: 'Completed', icon: '✅', color: 'green' },
     { id: 'notes', title: 'Notes', icon: '📝', color: 'gray' }
   ]
@@ -120,6 +123,34 @@ export default function DailyWorkBoard() {
     }
   }
 
+  const handleAddCard = (columnId) => {
+    setSelectedColumnId(columnId)
+    setFormOpen(true)
+  }
+
+  const handleFormSave = (record, columnId) => {
+    const card = {
+      id: record.id,
+      title: record.personName,
+      subtitle: record.taskName,
+      details: [
+        `${record.hoursWorked}h done / ${record.hoursEstimated}h est`,
+        `Status: ${record.status}`,
+        record.mood ? `Mood: ${record.mood}` : ''
+      ].filter(Boolean),
+      status: record.status === 'blocked' ? 'red' : 'blue',
+      data: record
+    }
+
+    setWorkCards((prev) => ({
+      ...prev,
+      [columnId]: {
+        ...prev[columnId],
+        cards: [...(prev[columnId]?.cards || []), card]
+      }
+    }))
+  }
+
   if (loading) {
     return <div className="p-8 text-center">Loading daily work...</div>
   }
@@ -179,10 +210,218 @@ export default function DailyWorkBoard() {
           columns={boardColumns}
           onCardClick={(card) => console.log('Work log clicked:', card)}
           onCardDelete={handleCardDelete}
-          onAddCard={() => console.log('Add work log')}
+          onAddCard={handleAddCard}
           onDragEnd={handleDragEnd}
+          cardContentRenderer={(card) => (
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">
+                  {card.data.status === 'blocked' ? '🛑' : 
+                   card.data.status === 'done' ? '✅' : '📅'}
+                </span>
+                <h4 className="font-semibold text-sm text-gray-900">{card.title}</h4>
+              </div>
+              <p className="text-xs text-gray-700">{card.subtitle}</p>
+              {card.details &&
+                card.details.map((detail, idx) => (
+                  <p key={idx} className="text-xs text-gray-600">
+                    {detail}
+                  </p>
+                ))}
+            </div>
+          )}
         />
+      </div>
+
+      <DailyWorkForm
+        isOpen={formOpen}
+        onClose={() => setFormOpen(false)}
+        onSave={handleFormSave}
+        initialColumnId={selectedColumnId}
+      />
+    </div>
+  )
+}
+
+function DailyWorkForm({ isOpen, onClose, onSave, initialColumnId }) {
+  const [formData, setFormData] = useState({
+    personName: '',
+    taskName: '',
+    hoursWorked: 0,
+    hoursEstimated: 8,
+    mood: ''
+  })
+  const [errors, setErrors] = useState({})
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        personName: '',
+        taskName: '',
+        hoursWorked: 0,
+        hoursEstimated: 8,
+        mood: ''
+      })
+      setErrors({})
+    }
+  }, [isOpen])
+
+  if (!isOpen) return null
+
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === 'hoursWorked' || name === 'hoursEstimated' ? Number(value) : value
+    }))
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    const newErrors = {}
+    if (!formData.personName.trim()) newErrors.personName = 'Person name is required'
+    if (!formData.taskName.trim()) newErrors.taskName = 'Task name is required'
+    if (Number.isNaN(formData.hoursWorked)) newErrors.hoursWorked = 'Hours worked must be a number'
+    if (Number.isNaN(formData.hoursEstimated)) newErrors.hoursEstimated = 'Hours estimated must be a number'
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+
+    const statusMap = {
+      today: 'in-progress',
+      blockers: 'blocked',
+      completed: 'done',
+      notes: 'in-progress'
+    }
+    const status = statusMap[initialColumnId] || 'in-progress'
+
+    const record = {
+      id: generateID('worklog'),
+      date: new Date().toISOString().split('T')[0],
+      personId: '',
+      personName: formData.personName.trim(),
+      projectId: '',
+      taskId: '',
+      taskName: formData.taskName.trim(),
+      hoursWorked: Number(formData.hoursWorked),
+      hoursEstimated: Number(formData.hoursEstimated),
+      status,
+      output: '',
+      blockers: [],
+      mood: formData.mood,
+      learnings: '',
+      nextDayPlan: ''
+    }
+
+    try {
+      await addToDB(STORES.workLogs, record)
+      onSave(record, initialColumnId)
+      onClose()
+    } catch (error) {
+      setErrors({ submit: 'Failed to save work log' })
+      console.error('Error saving work log:', error)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+      <div className="bg-white w-full max-w-md rounded-lg shadow-xl border">
+        <div className="px-5 py-4 border-b">
+          <h3 className="text-lg font-semibold text-gray-900">Add Daily Work Card</h3>
+          <p className="text-sm text-gray-600">Fill details to create a new work log card.</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-5 space-y-3 text-gray-900">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Person Name</label>
+            <input
+              name="personName"
+              value={formData.personName}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
+              placeholder="Enter person name"
+            />
+            {errors.personName && <p className="text-xs text-red-600 mt-1">{errors.personName}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Task Name</label>
+            <input
+              name="taskName"
+              value={formData.taskName}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
+              placeholder="Enter task"
+            />
+            {errors.taskName && <p className="text-xs text-red-600 mt-1">{errors.taskName}</p>}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Hours Worked</label>
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                name="hoursWorked"
+                value={formData.hoursWorked}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
+              />
+              {errors.hoursWorked && <p className="text-xs text-red-600 mt-1">{errors.hoursWorked}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Hours Estimated</label>
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                name="hoursEstimated"
+                value={formData.hoursEstimated}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
+              />
+              {errors.hoursEstimated && (
+                <p className="text-xs text-red-600 mt-1">{errors.hoursEstimated}</p>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Mood</label>
+            <select
+              name="mood"
+              value={formData.mood}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
+            >
+              <option value="">Select mood</option>
+              <option value="positive">Positive</option>
+              <option value="neutral">Neutral</option>
+              <option value="stressed">Stressed</option>
+            </select>
+          </div>
+
+          {errors.submit && <p className="text-sm text-red-600">{errors.submit}</p>}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm border rounded-md hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button type="submit" className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md">
+              Save Card
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )
 }
+

@@ -148,8 +148,8 @@ export default function OneOnOneForm({ isOpen, onClose, onSave, initialData = nu
                   name="personName"
                   value={formData.personName}
                   onChange={handleChange}
-                  className={`w-full px-3 py-2 border rounded-lg ${
-                    errors.person ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 ${
+                    errors.person ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
                   placeholder="Select person"
                 />
@@ -166,8 +166,8 @@ export default function OneOnOneForm({ isOpen, onClose, onSave, initialData = nu
                     name="scheduledDate"
                     value={formData.scheduledDate}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-lg ${
-                      errors.scheduledDate ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 ${
+                      errors.scheduledDate ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                     }`}
                   />
                   {errors.scheduledDate && (
@@ -185,8 +185,8 @@ export default function OneOnOneForm({ isOpen, onClose, onSave, initialData = nu
                     value={formData.scheduledTime}
                     onChange={handleChange}
                     disabled={formData.status === 'completed'}
-                    className={`w-full px-3 py-2 border rounded-lg ${
-                      errors.scheduledTime ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 ${
+                      errors.scheduledTime ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                     } disabled:bg-gray-100`}
                   />
                   {errors.scheduledTime && (
@@ -441,4 +441,5 @@ export default function OneOnOneForm({ isOpen, onClose, onSave, initialData = nu
     </div>
   )
 }
+
 

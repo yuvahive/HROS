@@ -108,60 +108,64 @@ export default function KanbanBoard({
                     onClick={() => onCardClick(card)}
                     className={`${getCardBgColor(card.status)} p-3 rounded-md border-2 cursor-move hover:shadow-md transition-shadow group`}
                   >
-                    {/* Custom Card Renderer */}
-                    {cardContentRenderer ? (
-                      cardContentRenderer(card)
-                    ) : (
-                      <>
-                        {/* Default Card Layout */}
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-sm text-gray-900">{card.title}</h4>
-                            {card.subtitle && (
-                              <p className="text-xs text-gray-600 mt-0.5">{card.subtitle}</p>
+                    <div className="flex flex-col h-full">
+                      <div className="flex-1">
+                        {/* Custom Card Renderer */}
+                        {cardContentRenderer ? (
+                          cardContentRenderer(card)
+                        ) : (
+                          <>
+                            {/* Default Card Layout */}
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex-1">
+                                <h4 className="font-medium text-sm text-gray-900">{card.title}</h4>
+                                {card.subtitle && (
+                                  <p className="text-xs text-gray-600 mt-0.5">{card.subtitle}</p>
+                                )}
+                              </div>
+                              <GripVertical className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100" />
+                            </div>
+
+                            {/* Card Details */}
+                            {card.details && (
+                              <div className="space-y-1 text-xs text-gray-700 mb-2">
+                                {card.details.map((detail, idx) => (
+                                  <p key={idx}>{detail}</p>
+                                ))}
+                              </div>
                             )}
-                          </div>
-                          <GripVertical className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100" />
-                        </div>
 
-                        {/* Card Details */}
-                        {card.details && (
-                          <div className="space-y-1 text-xs text-gray-700 mb-2">
-                            {card.details.map((detail, idx) => (
-                              <p key={idx}>{detail}</p>
-                            ))}
-                          </div>
+                            {/* Card Tags */}
+                            {card.tags && card.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mb-2">
+                                {card.tags.map((tag, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="text-xs bg-gray-300 text-gray-700 px-1.5 py-0.5 rounded"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </>
                         )}
+                      </div>
 
-                        {/* Card Tags */}
-                        {card.tags && card.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mb-2">
-                            {card.tags.map((tag, idx) => (
-                              <span
-                                key={idx}
-                                className="text-xs bg-gray-300 text-gray-700 px-1.5 py-0.5 rounded"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Card Actions */}
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onCardDelete(card.id, column.id)
-                            }}
-                            className="text-xs bg-red-200 text-red-700 px-2 py-1 rounded hover:bg-red-300 flex items-center gap-1"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            Delete
-                          </button>
-                        </div>
-                      </>
-                    )}
+                      {/* Card Actions - Always show delete if callback is provided */}
+                      <div className="mt-2 pt-2 border-t border-gray-100 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onCardDelete(card.id, column.id)
+                          }}
+                          className="text-[10px] uppercase tracking-wider font-bold bg-red-50 text-red-600 border border-red-100 px-2 py-1 rounded hover:bg-red-100 flex items-center gap-1 transition-colors"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Delete Card
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ))
               ) : (

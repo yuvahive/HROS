@@ -73,6 +73,11 @@ export default function HiringPipelineBoard() {
       return
     }
 
+    const sourceStage = card.stage || card.data?.stage
+    if (!sourceStage || sourceStage === targetColumn) {
+      return
+    }
+
     try {
       const updatedRecord = {
         ...card.data,
@@ -82,12 +87,16 @@ export default function HiringPipelineBoard() {
 
       // Update local state
       const newCards = { ...hiringCards }
-      newCards[card.data.stage].cards = newCards[card.data.stage].cards.filter(
+      newCards[sourceStage].cards = newCards[sourceStage].cards.filter(
         (c) => c.id !== card.id
       )
       newCards[targetColumn].cards.push({
         ...card,
-        stage: targetColumn
+        stage: targetColumn,
+        data: {
+          ...card.data,
+          stage: targetColumn
+        }
       })
       setHiringCards(newCards)
 

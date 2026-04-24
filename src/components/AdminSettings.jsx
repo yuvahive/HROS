@@ -162,7 +162,7 @@ export default function AdminSettings() {
       )}
       {success && (
         <div className="mx-6 mt-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
-          <p className="text-green-700">✓ {success}</p>
+          <p className="text-green-700">OK {success}</p>
           <button onClick={() => setSuccess(null)} className="ml-auto text-green-600 hover:text-green-800">
             <X className="w-4 h-4" />
           </button>
@@ -236,7 +236,7 @@ export default function AdminSettings() {
                         value={newUserForm.password}
                         onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
-                        placeholder="••••••••"
+                        placeholder="********"
                       />
                     </div>
                     <div>
@@ -329,7 +329,7 @@ export default function AdminSettings() {
                         <div>
                           <h4 className="font-semibold text-gray-900">{user.name}</h4>
                           <p className="text-sm text-gray-600">
-                            {user.email} • <span className="capitalize">{user.role}</span> •{' '}
+                            {user.email} - <span className="capitalize">{user.role}</span> -{' '}
                             <span className={user.isActive ? 'text-green-600' : 'text-red-600'}>
                               {user.isActive ? 'Active' : 'Inactive'}
                             </span>
@@ -337,12 +337,12 @@ export default function AdminSettings() {
                           {/* Show IDP assignment status */}
                           {user.idpProvider && user.idpProvider !== 'password' && (
                             <p className="text-xs text-blue-600 mt-1">
-                              🔐 IDP: <span className="font-medium capitalize">{user.idpProvider}</span>
+                              IDP: <span className="font-medium capitalize">{user.idpProvider}</span>
                             </p>
                           )}
                           {!user.idpProvider || user.idpProvider === 'password' && (
                             <p className="text-xs text-gray-500 mt-1">
-                              📝 Using: Password-based login
+                              Using: Password-based login
                             </p>
                           )}
                         </div>
@@ -356,7 +356,7 @@ export default function AdminSettings() {
                             className="p-2 hover:bg-blue-50 rounded"
                             title="Assign IDP Provider"
                           >
-                            🔐
+                            IDP
                           </button>
                           <button
                             onClick={() => setEditingUser(user)}
@@ -406,21 +406,21 @@ export default function AdminSettings() {
                   <select
                     value={selectedIDPForAssignment}
                     onChange={(e) => setSelectedIDPForAssignment(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
                   >
-                    <option value="password">📝 Password-based Login</option>
-                    <option value="google">🔷 Google OAuth</option>
-                    <option value="microsoft">☁️ Microsoft Entra</option>
-                    <option value="okta">🔒 Okta SSO</option>
-                    <option value="auth0">🛡️ Auth0</option>
-                    <option value="custom">⚙️ Custom OIDC</option>
+                    <option value="password">Password-based Login</option>
+                    <option value="google">Google OAuth</option>
+                    <option value="microsoft">Microsoft Entra</option>
+                    <option value="okta">Okta SSO</option>
+                    <option value="auth0">Auth0</option>
+                    <option value="custom">Custom OIDC</option>
                   </select>
                 </div>
 
                 {selectedIDPForAssignment !== 'password' && (
                   <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                     <p className="text-sm text-green-900">
-                      <strong>✓ Assignment Ready</strong><br/>
+                      <strong>Assignment Ready</strong><br/>
                       This user can now login using their {selectedIDPForAssignment} account.
                       Share the login URL with them.
                     </p>
@@ -476,7 +476,7 @@ export default function AdminSettings() {
                     Enable External IDP
                   </label>
                   <span className="text-xs text-gray-600 ml-auto">
-                    {idpConfig.enabled ? '✓ Enabled' : 'Disabled'}
+                    {idpConfig.enabled ? 'Enabled' : 'Disabled'}
                   </span>
                 </div>
 
@@ -488,7 +488,7 @@ export default function AdminSettings() {
                       <select
                         value={idpConfig.provider}
                         onChange={(e) => setIdpConfigLocal({ ...idpConfig, provider: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
                       >
                         <option value="custom">Custom OIDC</option>
                         <option value="google">Google</option>
@@ -506,7 +506,7 @@ export default function AdminSettings() {
                         value={idpConfig.name}
                         onChange={(e) => setIdpConfigLocal({ ...idpConfig, name: e.target.value })}
                         placeholder="e.g., Company Active Directory"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
                       />
                     </div>
 
@@ -518,7 +518,7 @@ export default function AdminSettings() {
                         value={idpConfig.providerUrl}
                         onChange={(e) => setIdpConfigLocal({ ...idpConfig, providerUrl: e.target.value })}
                         placeholder="https://idp.example.com"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
                       />
                     </div>
 
@@ -530,7 +530,7 @@ export default function AdminSettings() {
                         value={idpConfig.clientId}
                         onChange={(e) => setIdpConfigLocal({ ...idpConfig, clientId: e.target.value })}
                         placeholder="OAuth Client ID"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
                       />
                     </div>
 
@@ -542,7 +542,7 @@ export default function AdminSettings() {
                         value={idpConfig.clientSecret}
                         onChange={(e) => setIdpConfigLocal({ ...idpConfig, clientSecret: e.target.value })}
                         placeholder="OAuth Client Secret"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
                       />
                     </div>
 
@@ -554,7 +554,7 @@ export default function AdminSettings() {
                         value={idpConfig.scopes}
                         onChange={(e) => setIdpConfigLocal({ ...idpConfig, scopes: e.target.value })}
                         placeholder="email,profile,openid"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
                       />
                     </div>
 
@@ -592,3 +592,4 @@ export default function AdminSettings() {
     </div>
   )
 }
+
