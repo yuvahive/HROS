@@ -9,6 +9,7 @@ import WeekView from './components/WeekView';
 import DayView from './components/DayView';
 import TodaySchedule from './components/TodaySchedule';
 import HROSDashboard from './components/HROSDashboard';
+import HiveLabDashboard from './hivelab/HiveLabDashboard';
 import useEvents from './hooks/useEvents';
 import useDarkMode from './hooks/useDarkMode';
 import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
@@ -20,7 +21,7 @@ import { initializeSampleData } from './utils/sampleData';
 import './styles/index.css';
 
 function AppContent() {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, cloudStatus } = useAuth();
   const { events, addEvent, updateEvent, deleteEvent, bulkImportEvents } = useEvents();
   const { isDark, toggle: toggleDarkMode } = useDarkMode();
   const { requestPermission, scheduleNotification } = useNotifications();
@@ -207,29 +208,43 @@ function AppContent() {
 
   return (
     <div className={isDark ? 'dark' : ''}>
-      {/* Show login page if not authenticated */}
-      {!currentUser ? (
+      {/* Show loading screen during initial cloud sync */}
+      {useAuth().loading ? (
+        <div className="h-screen w-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 transition-colors duration-500">
+           <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-6 border border-gray-100 dark:border-gray-700">
+              <div className="w-16 h-16 border-4 border-blue-500/20 border-t-blue-600 rounded-full animate-spin"></div>
+              <div className="text-center">
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight italic">HROS <span className="text-blue-600 italic">CLOUD</span></h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 font-medium">Synchronizing organizational state...</p>
+              </div>
+           </div>
+        </div>
+      ) : !currentUser ? (
         <LoginPage />
       ) : (
         <>
-          {/* HROS Dashboard Mode */}
           {appMode === 'hros' ? (
             <div className="h-screen w-screen">
-              <HROSDashboard currentUser={currentUser} logout={logout} />
-              <div className="fixed top-4 right-4 z-50">
-                <button
-                  onClick={() => setAppMode('calendar')}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-lg"
-                >
-                  ← Back to Calendar
-                </button>
-              </div>
+              <HROSDashboard 
+                currentUser={currentUser} 
+                logout={logout} 
+                onBackToCalendar={() => setAppMode('calendar')}
+              />
+            </div>
+          ) : appMode === 'hivelab' ? (
+            <div className="h-screen w-screen">
+              <HiveLabDashboard 
+                currentUser={currentUser}
+                onBackToCalendar={() => setAppMode('calendar')}
+                isDark={isDark}
+                onToggleDarkMode={toggleDarkMode}
+              />
             </div>
           ) : (
             // Calendar Mode (original UI)
-            <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+            <div className="flex h-screen bg-gray-100 dark:bg-gray-900 overflow-hidden">
               {/* Sidebar */}
-              <div className="w-80 hidden md:flex flex-col">
+              <div className="w-80 hidden md:flex flex-col flex-shrink-0 border-r border-gray-200 dark:border-gray-700">
                 <Sidebar
                   currentDate={currentDate}
                   selectedDate={selectedDate}
@@ -245,24 +260,25 @@ function AppContent() {
                   onImport={handleImport}
                   isDark={isDark}
                   onToggleDarkMode={toggleDarkMode}
-                  events={events}
                   currentUser={currentUser}
                   onLogout={logout}
+                  cloudStatus={cloudStatus}
                 />
               </div>
 
               {/* Main Content */}
-              <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                 <Header
                   view={view}
                   onViewChange={handleViewChange}
                   isDark={isDark}
                   onSwitchToHROS={() => setAppMode('hros')}
+                  onSwitchToHiveLab={() => setAppMode('hivelab')}
                   currentUser={currentUser}
                   onLogout={logout}
                 />
 
-                <div className="flex-1 overflow-hidden flex gap-4 p-4">
+                <div className="flex-1 min-h-0 overflow-hidden flex gap-4 p-4">
                   {/* Calendar View */}
                   <div className="flex-1 overflow-hidden">
                     {view === 'month' && (
@@ -276,6 +292,7 @@ function AppContent() {
                         onToggleComplete={handleToggleComplete}
                         selectedCategories={selectedCategories}
                         searchTerm={searchTerm}
+                        onDateSelect={setSelectedDate}
                       />
                     )}
                     {view === 'week' && (
@@ -289,6 +306,7 @@ function AppContent() {
                         onToggleComplete={handleToggleComplete}
                         selectedCategories={selectedCategories}
                         searchTerm={searchTerm}
+                        onDateSelect={setSelectedDate}
                       />
                     )}
                     {view === 'day' && (
@@ -302,6 +320,7 @@ function AppContent() {
                         onToggleComplete={handleToggleComplete}
                         selectedCategories={selectedCategories}
                         searchTerm={searchTerm}
+                        onDateSelect={setSelectedDate}
                       />
                     )}
                   </div>
@@ -313,6 +332,8 @@ function AppContent() {
                       onEdit={handleOpenModal}
                       onDelete={deleteEvent}
                       onToggleComplete={handleToggleComplete}
+                      selectedDate={selectedDate || new Date()}
+                      onNewEvent={() => handleOpenModal()}
                     />
                   </div>
                 </div>

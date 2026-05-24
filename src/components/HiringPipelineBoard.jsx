@@ -7,7 +7,7 @@ import { STORES } from '../utils/indexedDB'
 import { AuthContext } from '../context/AuthContext'
 
 export default function HiringPipelineBoard() {
-  const { currentUser } = useContext(AuthContext)
+  const { currentUser, cloudStatus, lastPulse } = useContext(AuthContext)
   const [hiringCards, setHiringCards] = useState({})
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
@@ -23,48 +23,48 @@ export default function HiringPipelineBoard() {
 
   // Load hiring data from IndexedDB
   useEffect(() => {
-    const loadHiringData = async () => {
-      try {
-        const hiringPipeline = await getAllFromDB(STORES.hiringPipeline)
-        const grouped = {
-          applicant: { cards: [] },
-          screening: { cards: [] },
-          interview: { cards: [] },
-          offered: { cards: [] },
-          hired: { cards: [] }
+    loadHiringData()
+  }, [lastPulse])
+
+  const loadHiringData = async () => {
+    try {
+      const hiringPipeline = await getAllFromDB(STORES.hiringPipeline)
+      const grouped = {
+        applicant: { cards: [] },
+        screening: { cards: [] },
+        interview: { cards: [] },
+        offered: { cards: [] },
+        hired: { cards: [] }
+      }
+
+      hiringPipeline.forEach((hire) => {
+        const card = {
+          id: hire.id,
+          title: hire.name,
+          subtitle: hire.role,
+          details: [
+            `Applied: ${new Date(hire.appliedDate).toLocaleDateString()}`,
+            hire.screeningScore ? `Score: ${hire.screeningScore}/10` : '',
+            hire.offerSalary ? `Offer: $${hire.offerSalary}` : ''
+          ].filter(Boolean),
+          tags: [hire.source],
+          status: hire.stage,
+          stage: hire.stage,
+          data: hire
         }
 
-        hiringPipeline.forEach((hire) => {
-          const card = {
-            id: hire.id,
-            title: hire.name,
-            subtitle: hire.role,
-            details: [
-              `Applied: ${new Date(hire.appliedDate).toLocaleDateString()}`,
-              hire.screeningScore ? `Score: ${hire.screeningScore}/10` : '',
-              hire.offerSalary ? `Offer: $${hire.offerSalary}` : ''
-            ].filter(Boolean),
-            tags: [hire.source],
-            status: hire.stage,
-            stage: hire.stage,
-            data: hire
-          }
+        if (grouped[hire.stage]) {
+          grouped[hire.stage].cards.push(card)
+        }
+      })
 
-          if (grouped[hire.stage]) {
-            grouped[hire.stage].cards.push(card)
-          }
-        })
-
-        setHiringCards(grouped)
-        setLoading(false)
-      } catch (error) {
-        console.error('Error loading hiring data:', error)
-        setLoading(false)
-      }
+      setHiringCards(grouped)
+      setLoading(false)
+    } catch (error) {
+      console.error('Error loading hiring data:', error)
+      setLoading(false)
     }
-
-    loadHiringData()
-  }, [])
+  }
 
   // Handle card drag/drop to change stage
   const handleDragEnd = async ({ card, targetColumn }) => {
@@ -198,27 +198,24 @@ export default function HiringPipelineBoard() {
   return (
     <div className="h-full w-full flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b p-6 mb-4">
+      <div className="bg-white border-b p-3 mb-2">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <Users className="w-8 h-8 text-blue-600" />
-              Hiring Pipeline
-            </h1>
-            <p className="text-gray-600 mt-1">Track candidates from application to hire</p>
-          </div>
-          <div className="flex gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
+          <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <Users className="w-6 h-6 text-blue-600" />
+            Hiring Pipeline
+          </h1>
+          <div className="flex gap-6 text-sm">
+            <div className="text-right">
+              <div className="font-bold text-blue-600">
                 {Object.values(hiringCards).reduce((sum, stage) => sum + (stage.cards?.length || 0), 0)}
               </div>
-              <p className="text-xs text-gray-600">Total Candidates</p>
+              <p className="text-xs text-gray-500">Total Candidates</p>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
+            <div className="text-right">
+              <div className="font-bold text-green-600">
                 {hiringCards.hired?.cards?.length || 0}
               </div>
-              <p className="text-xs text-gray-600">Hired</p>
+              <p className="text-xs text-gray-500">Hired</p>
             </div>
           </div>
         </div>

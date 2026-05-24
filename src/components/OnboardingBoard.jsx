@@ -1,25 +1,35 @@
-import React, { useState, useEffect } from 'react'
-import { Zap, CheckCircle2, AlertCircle, Plus, Edit2, Trash2 } from 'lucide-react'
+import React, { useState, useEffect, useContext } from 'react'
+import { Zap, CheckCircle2, AlertCircle, Plus, Edit2, Trash2, Settings, Save, X, Bell } from 'lucide-react'
 import { getAllFromDB, updateInDB, deleteFromDB, addToDB, STORES } from '../utils/indexedDB'
 import { generateID } from '../utils/sampleData'
+import { AuthContext } from '../context/AuthContext'
+import { CloudStorage } from '../services/GoogleSheetsService'
 
 export default function OnboardingBoard() {
+  const { cloudStatus, lastPulse, idpConfig } = useContext(AuthContext)
   const [onboardingRecords, setOnboardingRecords] = useState([])
   const [selectedRecord, setSelectedRecord] = useState(null)
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
-  const milestones = [
-    { day: 1, title: 'Day 1: Onboarding', tasks: ['Office tour', 'IT setup', 'Team intro', 'Send welcome email'] },
-    { day: 7, title: 'Week 1: Getting Started', tasks: ['First week feedback', 'System access', 'Role clarity', 'Mentor assigned'] },
-    { day: 14, title: 'Week 2: Ramping Up', tasks: ['First project assigned', 'Code/process review', 'Team sync', 'Initial feedback'] },
-    { day: 30, title: 'Day 30: 30-Day Review', tasks: ['Performance review', 'Feedback session', 'Culture fit assess', 'Confirm hire'] }
-  ]
+  // Load milestones from cloud config or use defaults
+  const [milestones, setMilestones] = useState([
+    { day: 1, title: 'Day 1: Onboarding', tasks: 'Office tour\nIT setup\nTeam intro\nSend welcome email' },
+    { day: 7, title: 'Week 1: Getting Started', tasks: 'First week feedback\nSystem access\nRole clarity\nMentor assigned' },
+    { day: 14, title: 'Week 2: Ramping Up', tasks: 'First project assigned\nCode/process review\nTeam sync\nInitial feedback' },
+    { day: 30, title: 'Day 30: 30-Day Review', tasks: 'Performance review\nFeedback session\nCulture fit assess\nConfirm hire' }
+  ])
 
-  // Load onboarding records
   useEffect(() => {
     loadOnboardingData()
-  }, [])
+  }, [lastPulse])
+
+  useEffect(() => {
+    if (idpConfig?.onboardingMilestones) {
+      setMilestones(idpConfig.onboardingMilestones)
+    }
+  }, [idpConfig])
 
   const loadOnboardingData = async () => {
     try {
@@ -32,43 +42,26 @@ export default function OnboardingBoard() {
     }
   }
 
-  const handleAddNewHire = () => {
-    setSelectedRecord(null)
-    setFormOpen(true)
-  }
-
-  const handleEditRecord = (record) => {
-    setSelectedRecord(record)
-    setFormOpen(true)
-  }
-
   const handleDeleteRecord = async (id) => {
-    try {
-      await deleteFromDB(STORES.onboarding, id)
-      await loadOnboardingData()
-    } catch (error) {
-      console.error('Error deleting record:', error)
-    }
+    if (!window.confirm('Delete this record?')) return
+    await deleteFromDB(STORES.onboarding, id)
+    await loadOnboardingData()
   }
 
   const handleSaveRecord = async (formData) => {
-    try {
-      if (selectedRecord?.id) {
-        await updateInDB(STORES.onboarding, formData)
-      } else {
-        await addToDB(STORES.onboarding, formData)
-      }
-      await loadOnboardingData()
-      setFormOpen(false)
-    } catch (error) {
-      console.error('Error saving record:', error)
+    if (selectedRecord?.id) {
+      await updateInDB(STORES.onboarding, formData)
+    } else {
+      await addToDB(STORES.onboarding, formData)
     }
+    await loadOnboardingData()
+    setFormOpen(false)
   }
 
   const getProgressPercentage = (record) => {
     if (!record.milestoneStatus) return 0
     const completed = Object.values(record.milestoneStatus).filter((s) => s === true).length
-    return Math.round((completed / Object.keys(record.milestoneStatus).length) * 100)
+    return Math.round((completed / milestones.length) * 100)
   }
 
   const getDaysElapsed = (startDate) => {
@@ -79,455 +72,347 @@ export default function OnboardingBoard() {
 
   const getStatus = (record) => {
     const daysElapsed = getDaysElapsed(record.startDate)
-    if (daysElapsed >= 30) {
-      return record.completionStatus === 'confirmed' ? 'completed' : 'review'
-    } else if (daysElapsed >= 14) {
-      return 'ramping'
-    } else if (daysElapsed >= 7) {
-      return 'started'
-    }
+    if (daysElapsed >= 30) return record.completionStatus === 'confirmed' ? 'completed' : 'review'
+    if (daysElapsed >= 14) return 'ramping'
+    if (daysElapsed >= 7) return 'started'
     return 'new'
   }
 
-  if (loading) {
-    return <div className="p-8 text-center">Loading onboarding records...</div>
-  }
-
   const statusColors = {
-    new: 'bg-blue-50 border-blue-200',
-    started: 'bg-yellow-50 border-yellow-200',
-    ramping: 'bg-purple-50 border-purple-200',
-    review: 'bg-orange-50 border-orange-200',
-    completed: 'bg-green-50 border-green-200'
+    new: 'bg-blue-50 border-blue-100',
+    started: 'bg-yellow-50 border-yellow-100',
+    ramping: 'bg-purple-50 border-purple-100',
+    review: 'bg-orange-50 border-orange-100',
+    completed: 'bg-green-50 border-green-100'
   }
 
-  const statusIcons = {
-    new: 'NEW',
-    started: 'START',
-    ramping: 'RAMP',
-    review: 'REVIEW',
-    completed: 'DONE'
-  }
+  if (loading) return <div className="p-8 text-center text-gray-500">Syncing database...</div>
 
   return (
-    <div className="h-full w-full flex flex-col bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b p-6">
+    <div className="h-full w-full flex flex-col bg-slate-50 overflow-hidden">
+      {/* 🚀 COMPACT HEADER */}
+      <div className="bg-white border-b px-6 py-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <Zap className="w-8 h-8 text-yellow-600" />
-              Onboarding Progress
-            </h1>
-            <p className="text-gray-600 mt-1">Track new hire 30-day progress and milestones</p>
-          </div>
-          <button
-            onClick={handleAddNewHire}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4" />
-            New Hire
-          </button>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-4 gap-4 mt-6">
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <div className="text-2xl font-bold text-blue-600">
-              {onboardingRecords.filter((r) => getStatus(r) === 'new').length}
+          <div className="flex items-center gap-3">
+            <div className="bg-yellow-500 p-2 rounded-xl text-white shadow-sm shadow-yellow-200">
+               <Zap className="w-6 h-6" />
             </div>
-            <p className="text-xs text-gray-600">New Hires</p>
-          </div>
-          <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-            <div className="text-2xl font-bold text-yellow-600">
-              {onboardingRecords.filter((r) => getStatus(r) === 'started').length}
+            <div>
+              <h1 className="text-xl font-black text-slate-900 tracking-tight leading-none">Onboarding Flow</h1>
+              <p className="text-[10px] uppercase font-bold text-slate-400 mt-1 tracking-wider">Success Markers Dashboard</p>
             </div>
-            <p className="text-xs text-gray-600">Getting Started</p>
           </div>
-          <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-            <div className="text-2xl font-bold text-purple-600">
-              {onboardingRecords.filter((r) => getStatus(r) === 'ramping').length}
-            </div>
-            <p className="text-xs text-gray-600">Ramping Up</p>
-          </div>
-          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-            <div className="text-2xl font-bold text-green-600">
-              {onboardingRecords.filter((r) => getStatus(r) === 'completed').length}
-            </div>
-            <p className="text-xs text-gray-600">Completed</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Records Grid */}
-      <div className="flex-1 overflow-y-auto p-6">
-        {onboardingRecords.length === 0 ? (
-          <div className="text-center py-12">
-            <Zap className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">No onboarding records yet</p>
-            <button
-              onClick={handleAddNewHire}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setSettingsOpen(true)}
+              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
+              title="Edit Global Milestones"
             >
-              Add First Hire
+              <Settings className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => { setSelectedRecord(null); setFormOpen(true); }}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
+            >
+              <Plus className="w-4 h-4" /> Add Hire
             </button>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-6xl">
-            {onboardingRecords.map((record) => {
-              const daysElapsed = getDaysElapsed(record.startDate)
-              const status = getStatus(record)
-              const progress = getProgressPercentage(record)
-              const isOverdue = daysElapsed > 30 && record.completionStatus !== 'confirmed'
-
-              return (
-                <div
-                  key={record.id}
-                  className={`border rounded-lg p-4 ${statusColors[status]} ${isOverdue ? 'ring-2 ring-red-500' : ''}`}
-                >
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="font-semibold text-gray-900 text-lg flex items-center gap-2">
-                        {statusIcons[status]} {record.name}
-                      </h3>
-                      <p className="text-xs text-gray-600 mt-0.5">{record.role}</p>
-                    </div>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => handleEditRecord(record)}
-                        className="p-1 hover:bg-white hover:bg-opacity-50 rounded"
-                      >
-                        <Edit2 className="w-4 h-4 text-gray-600" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteRecord(record.id)}
-                        className="p-1 hover:bg-white hover:bg-opacity-50 rounded"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Timeline Info */}
-                  <div className="grid grid-cols-3 gap-2 mb-3 text-xs">
-                    <div>
-                      <p className="text-gray-600">Start Date</p>
-                      <p className="font-semibold text-gray-900">{new Date(record.startDate).toLocaleDateString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-600">Days Elapsed</p>
-                      <p className={`font-semibold ${daysElapsed > 30 ? 'text-red-600' : 'text-gray-900'}`}>
-                        {daysElapsed}/30
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-600">Progress</p>
-                      <p className="font-semibold text-gray-900">{progress}%</p>
-                    </div>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="w-full bg-white bg-opacity-40 rounded-full h-2 mb-4 overflow-hidden">
-                    <div
-                      className="bg-blue-600 h-full transition-all"
-                      style={{ width: `${Math.min(progress, 100)}%` }}
-                    />
-                  </div>
-
-                  {/* Milestone Checklist */}
-                  <div className="space-y-2">
-                    {milestones.map((milestone, idx) => {
-                      const isCompleted = record.milestoneStatus?.[`milestone_${idx}`] || false
-                      const isActive = daysElapsed >= milestone.day
-
-                      return (
-                        <div
-                          key={idx}
-                          className={`p-2 rounded border text-xs ${
-                            isCompleted
-                              ? 'bg-green-100 border-green-300'
-                              : isActive
-                                ? 'bg-white border-gray-300'
-                                : 'bg-gray-100 border-gray-300 opacity-50'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={isCompleted}
-                              onChange={async (e) => {
-                                const updated = {
-                                  ...record,
-                                  milestoneStatus: {
-                                    ...record.milestoneStatus,
-                                    [`milestone_${idx}`]: e.target.checked
-                                  }
-                                }
-                                await updateInDB(STORES.onboarding, updated)
-                                await loadOnboardingData()
-                              }}
-                              disabled={!isActive}
-                              className="w-4 h-4 rounded cursor-pointer"
-                            />
-                            <span className="font-medium">{milestone.title}</span>
-                          </div>
-                          {isActive && (
-                            <div className="mt-1 ml-6 text-gray-600 text-xs">
-                              {milestone.tasks.slice(0, 2).map((task, tidx) => (
-                                <p key={tidx}>- {task}</p>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-
-                  {/* Status Badge */}
-                  <div className="mt-4 pt-3 border-t border-white border-opacity-50 flex items-center justify-between">
-                    <p className="text-xs text-gray-600">
-                      {isOverdue && daysElapsed > 35 ? (
-                        <span className="text-red-600 font-medium">Overdue - Action needed</span>
-                      ) : isOverdue ? (
-                        <span className="text-orange-600 font-medium">Review pending (30 days passed)</span>
-                      ) : (
-                        <span className="text-gray-600">On track for day {Math.ceil(daysElapsed)}</span>
-                      )}
-                    </p>
-                    <select
-                      value={record.completionStatus || 'pending'}
-                      onChange={async (e) => {
-                        const updated = { ...record, completionStatus: e.target.value }
-                        await updateInDB(STORES.onboarding, updated)
-                        await loadOnboardingData()
-                      }}
-                      className="text-xs px-2 py-1 rounded border border-gray-300"
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="on-track">On Track</option>
-                      <option value="at-risk">At Risk</option>
-                      <option value="confirmed">Confirmed</option>
-                    </select>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
+        </div>
       </div>
 
-      {/* Form Modal */}
-      {formOpen && (
-        <OnboardingForm
-          isOpen={formOpen}
-          onClose={() => setFormOpen(false)}
-          onSave={handleSaveRecord}
-          initialData={selectedRecord}
+      <div className="flex-1 overflow-y-auto p-4 lg:p-6 bg-[#f8fbfe]">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 max-w-[1600px] mx-auto">
+          {onboardingRecords.map((record) => {
+            const days = getDaysElapsed(record.startDate);
+            const status = getStatus(record);
+            const progress = getProgressPercentage(record);
+            
+            return (
+              <div key={record.id} className={`bg-white border-2 rounded-2xl p-4 flex flex-col hover:border-blue-400 transition-all duration-300 group ${statusColors[status]}`}>
+                {/* 🏷️ TIGHT CARD HEADER */}
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                       <span className="text-[9px] font-black px-2 py-0.5 rounded bg-white text-slate-600 border border-slate-200 uppercase tracking-tighter">
+                         Day {days}
+                       </span>
+                    </div>
+                    <h3 className="font-bold text-slate-900 truncate leading-tight">{record.name}</h3>
+                    <p className="text-[10px] text-slate-500 font-medium">{record.role} • {record.department}</p>
+                  </div>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={async () => {
+                          if (!record.email) return alert('No email found for this hire!');
+                          const confirm = window.confirm(`Send a status nudge email to ${record.name}?`);
+                          if (confirm) {
+                            await CloudStorage.update('Notification', [{
+                              type: 'nudge',
+                              to: record.email,
+                              name: record.name,
+                              progress: progress,
+                              days: days
+                            }], 'notify');
+                            alert('Nudge sent to manager queue!');
+                          }
+                        }}
+                        className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-yellow-600"
+                        title="Send Email Nudge"
+                      >
+                        <Bell className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => { setSelectedRecord(record); setFormOpen(true); }} className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-blue-600"><Edit2 className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => handleDeleteRecord(record.id)} className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                    </div>
+                </div>
+
+                {/* 📊 MINI STATS */}
+                <div className="flex gap-2 mb-4">
+                  <div className="bg-white bg-opacity-70 flex-1 px-2.5 py-1.5 rounded-xl border border-slate-100">
+                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 text-center">Stability</p>
+                     <p className="text-xs font-black text-slate-900 text-center">{progress}%</p>
+                  </div>
+                  <div className="bg-white bg-opacity-70 flex-1 px-2.5 py-1.5 rounded-xl border border-slate-100">
+                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 text-center">Velocity</p>
+                     <p className="text-xs font-black text-slate-900 text-center">{Math.min(days, 30)}/30</p>
+                  </div>
+                </div>
+
+                {/* 📑 COMPACT MILESTONE LIST */}
+                <div className="flex-1 space-y-2">
+                  {milestones.map((m, idx) => {
+                    const done = record.milestoneStatus?.[`milestone_${idx}`];
+                    const active = days >= m.day;
+                    return (
+                      <div key={idx} className={`p-2 rounded-xl border flex flex-col gap-1 transition-all ${done ? 'bg-green-50 border-green-200' : active ? 'bg-white border-blue-100 shadow-sm' : 'opacity-40 grayscale border-transparent'}`}>
+                        <div className="flex items-center gap-2">
+                          <input 
+                            type="checkbox" 
+                            checked={done} 
+                            disabled={!active}
+                            onChange={async (e) => {
+                              const updated = { ...record, milestoneStatus: { ...record.milestoneStatus, [`milestone_${idx}`]: e.target.checked } };
+                              await updateInDB(STORES.onboarding, updated);
+                              await loadOnboardingData();
+                            }}
+                            className="w-4 h-4 rounded-md border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer" 
+                          />
+                          <span className={`text-[11px] font-bold ${done ? 'text-green-700' : 'text-slate-700'}`}>{m.title}</span>
+                          {active && !done && <div className="w-1 h-1 bg-blue-500 rounded-full animate-pulse ml-auto" />}
+                        </div>
+                        {active && !done && (
+                          <div className="pl-6 text-[10px] text-slate-500 font-medium">
+                            {m.tasks.split('\n')[0]}...
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* 🔘 STATUS CAPSULE */}
+                <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between">
+                  <select
+                    value={record.completionStatus || 'pending'}
+                    onChange={async (e) => {
+                      const updated = { ...record, completionStatus: e.target.value };
+                      await updateInDB(STORES.onboarding, updated);
+                      await loadOnboardingData();
+                    }}
+                    className="w-full text-[10px] font-black uppercase tracking-widest py-2 rounded-xl border-none bg-slate-900 text-white text-center cursor-pointer hover:bg-slate-800 transition-colors"
+                  >
+                    <option value="pending">⏳ Pending Review</option>
+                    <option value="confirmed">✅ Deploy Confirmed</option>
+                    <option value="at-risk">⚠️ Risk Detected</option>
+                  </select>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ⚙️ GLOBAL MILESTONE SETTINGS MODAL */}
+      {settingsOpen && (
+        <MilestoneSettings 
+          isOpen={settingsOpen} 
+          onClose={() => setSettingsOpen(false)} 
+          milestones={milestones}
+          hrAlertEmail={idpConfig?.hrAlertEmail || ''}
+          onSave={async (newM, hrEmail) => {
+            setMilestones(newM);
+            const newConfig = { ...idpConfig, onboardingMilestones: newM, hrAlertEmail: hrEmail };
+            await CloudStorage.update('Config', [newConfig]);
+            setSettingsOpen(false);
+          }}
         />
+      )}
+
+      {/* 📝 NEW HIRE MODAL */}
+      {formOpen && (
+        <OnboardingForm isOpen={formOpen} onClose={() => setFormOpen(false)} onSave={handleSaveRecord} initialData={selectedRecord} />
       )}
     </div>
   )
 }
 
-// Onboarding Form Component
-function OnboardingForm({ isOpen, onClose, onSave, initialData = null }) {
-  const [formData, setFormData] = useState({
-    id: '',
-    name: '',
-    role: '',
-    department: '',
-    startDate: new Date().toISOString().split('T')[0],
-    manager: '',
-    mentor: '',
-    email: '',
-    phone: '',
-    notes: '',
-    completionStatus: 'pending',
-    milestoneStatus: {
-      milestone_0: false,
-      milestone_1: false,
-      milestone_2: false,
-      milestone_3: false
-    }
-  })
-
-  const [errors, setErrors] = useState({})
-
-  useEffect(() => {
-    if (initialData) {
-      setFormData(initialData)
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        id: generateID('onboard'),
-        startDate: new Date().toISOString().split('T')[0]
-      }))
-    }
-    setErrors({})
-  }, [isOpen, initialData])
-
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+function MilestoneSettings({ isOpen, onClose, milestones, hrAlertEmail, onSave }) {
+  const [localM, setLocalM] = useState([...milestones]);
+  const [localHR, setLocalHR] = useState(hrAlertEmail);
+  
+  const update = (idx, field, val) => {
+    const next = [...localM];
+    next[idx][field] = val;
+    setLocalM(next);
   }
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    const newErrors = {}
-    if (!formData.name.trim()) newErrors.name = 'Name required'
-    if (!formData.role.trim()) newErrors.role = 'Role required'
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors)
-      return
-    }
-
-    onSave(formData)
-  }
-
-  if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-96 overflow-y-auto">
-        <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white">
-          <h2 className="text-2xl font-bold">Add New Hire</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            x
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 text-slate-900">
+      <div className="bg-white rounded-[32px] w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="p-8 border-b bg-slate-50 flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Milestone Engine</h2>
+            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Global orientation configuration</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><X className="w-6 h-6 text-slate-400" /></button>
+        </div>
+        <div className="p-8 overflow-y-auto space-y-6">
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl">
+            <label className="text-[10px] font-black uppercase text-blue-600 mb-2 block">Central HR Alert Email (For Critical Updates)</label>
+            <input 
+              type="email" 
+              value={localHR} 
+              onChange={(e) => setLocalHR(e.target.value)} 
+              placeholder="hr@company.com"
+              style={{ color: '#0f172a', backgroundColor: '#ffffff' }}
+              className="w-full px-4 py-3 border border-blue-200 rounded-xl font-bold placeholder:text-slate-400" 
+            />
+          </div>
+          {localM.map((m, i) => (
+            <div key={i} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
+              <div className="grid grid-cols-4 gap-4">
+                <div className="col-span-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Trigger Day</label>
+                  <input 
+                    type="number" value={m.day} 
+                    onChange={(e) => update(i, 'day', parseInt(e.target.value))} 
+                    style={{ color: '#0f172a', backgroundColor: '#ffffff' }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl font-bold" 
+                  />
+                </div>
+                <div className="col-span-3">
+                  <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Title</label>
+                  <input 
+                    type="text" value={m.title} 
+                    onChange={(e) => update(i, 'title', e.target.value)} 
+                    style={{ color: '#0f172a', backgroundColor: '#ffffff' }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl font-bold" 
+                    placeholder="E.g. Day 1"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Task List (One per line)</label>
+                <textarea 
+                  rows="3" value={m.tasks} 
+                  onChange={(e) => update(i, 'tasks', e.target.value)} 
+                  style={{ color: '#0f172a', backgroundColor: '#ffffff' }}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold" 
+                  placeholder="Task 1\nTask 2..."
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="p-8 border-t flex gap-4">
+          <button onClick={onClose} className="flex-1 py-4 text-slate-500 font-bold hover:bg-slate-100 rounded-2xl">Cancel</button>
+          <button onClick={() => onSave(localM, localHR)} className="flex-1 py-4 bg-slate-900 text-white font-black rounded-2xl shadow-xl shadow-slate-200 flex items-center justify-center gap-2">
+            <Save className="w-5 h-5" /> Deploy Global Change
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-gray-900">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400 ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
-                placeholder="John Doe"
+function OnboardingForm({ isOpen, onClose, onSave, initialData = null }) {
+  const [formData, setFormData] = useState({
+    id: '', name: '', role: '', department: '', startDate: new Date().toISOString().split('T')[0],
+    email: '', managerEmail: '', sendWelcomeEmail: true, completionStatus: 'pending', milestoneStatus: {}
+  });
+
+  useEffect(() => {
+    if (initialData) setFormData(initialData);
+    else setFormData(prev => ({ ...prev, id: generateID('onboard'), startDate: new Date().toISOString().split('T')[0] }));
+  }, [isOpen, initialData]);
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 text-slate-900">
+      <div className="bg-white rounded-[32px] w-full max-w-lg shadow-2xl overflow-hidden">
+        <div className="p-8 border-b bg-slate-50">
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Onboard Hire</h2>
+        </div>
+        <form onSubmit={(e) => { e.preventDefault(); onSave(formData); }} className="p-8 space-y-6">
+          <div className="space-y-4">
+            <input 
+               type="text" value={formData.name} 
+               onChange={(e) => setFormData({...formData, name: e.target.value})} 
+               placeholder="Hire Name" 
+               style={{ color: '#0f172a', backgroundColor: '#e2e8f0' }}
+               className="w-full px-4 py-3 border-none rounded-xl focus:ring-2 focus:ring-blue-500 font-bold placeholder:text-slate-500" 
+            />
+            <div className="grid grid-cols-2 gap-4">
+              <input 
+                 type="text" value={formData.role} 
+                 onChange={(e) => setFormData({...formData, role: e.target.value})} 
+                 placeholder="Role" 
+                 style={{ color: '#0f172a', backgroundColor: '#e2e8f0' }}
+                 className="w-full px-4 py-3 border-none rounded-xl focus:ring-2 focus:ring-blue-500 font-bold placeholder:text-slate-500" 
               />
-              {errors.name && <p className="text-red-600 text-xs mt-1">{errors.name}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
-              <input
-                type="text"
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400 ${errors.role ? 'border-red-500' : 'border-gray-300'}`}
-                placeholder="Engineer"
-              />
-              {errors.role && <p className="text-red-600 text-xs mt-1">{errors.role}</p>}
-            </div>
-
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-              <input
-                type="text"
-                name="department"
-                value={formData.department}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
-                placeholder="Engineering"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-              <input
-                type="date"
-                name="startDate"
-                value={formData.startDate}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
+              <input 
+                 type="text" value={formData.department} 
+                 onChange={(e) => setFormData({...formData, department: e.target.value})} 
+                 placeholder="Dept" 
+                 style={{ color: '#0f172a', backgroundColor: '#e2e8f0' }}
+                 className="w-full px-4 py-3 border-none rounded-xl focus:ring-2 focus:ring-blue-500 font-bold placeholder:text-slate-500" 
               />
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Manager</label>
-              <input
-                type="text"
-                name="manager"
-                value={formData.manager}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
-                placeholder="Manager name"
+            <input 
+               type="email" value={formData.email} 
+               onChange={(e) => setFormData({...formData, email: e.target.value})} 
+               placeholder="Work Email" 
+               style={{ color: '#0f172a', backgroundColor: '#e2e8f0' }}
+               className="w-full px-4 py-3 border-none rounded-xl focus:ring-2 focus:ring-blue-500 font-bold placeholder:text-slate-500" 
+            />
+            <input 
+               type="email" value={formData.managerEmail} 
+               onChange={(e) => setFormData({...formData, managerEmail: e.target.value})} 
+               placeholder="Reporting Manager Email" 
+               style={{ color: '#0f172a', backgroundColor: '#e2e8f0' }}
+               className="w-full px-4 py-3 border-none rounded-xl focus:ring-2 focus:ring-blue-500 font-bold placeholder:text-slate-500" 
+            />
+            <div className="flex items-center gap-2 px-4">
+              <input 
+                type="checkbox" 
+                checked={formData.sendWelcomeEmail}
+                onChange={(e) => setFormData({...formData, sendWelcomeEmail: e.target.checked})}
+                className="w-5 h-5 rounded border-slate-300"
               />
+              <span className="text-xs font-bold text-slate-600">Send "First Day" Welcome Email automatically</span>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
-                placeholder="employee@company.com"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
-                placeholder="+1234567890"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Mentor</label>
-            <input
-              type="text"
-              name="mentor"
-              value={formData.mentor}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
-              placeholder="Mentor name"
+            <input 
+               type="date" value={formData.startDate} 
+               onChange={(e) => setFormData({...formData, startDate: e.target.value})} 
+               style={{ color: '#0f172a', backgroundColor: '#e2e8f0' }}
+               className="w-full px-4 py-3 border-none rounded-xl focus:ring-2 focus:ring-blue-500 font-bold" 
             />
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-            <textarea
-              name="notes"
-              value={formData.notes}
-              onChange={handleChange}
-              rows="2"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 placeholder-gray-400"
-              placeholder="Additional notes..."
-            />
-          </div>
-
-          <div className="flex gap-3 pt-4 border-t">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Save
-            </button>
+          <div className="pt-6 border-t flex gap-4">
+            <button type="button" onClick={onClose} className="flex-1 py-4 text-slate-500 font-bold hover:bg-slate-100 rounded-2xl">Cancel</button>
+            <button type="submit" className="flex-1 py-4 bg-blue-600 text-white font-black rounded-2xl shadow-xl shadow-blue-200">Start Orientation</button>
           </div>
         </form>
       </div>
     </div>
-  )
+  );
 }
-

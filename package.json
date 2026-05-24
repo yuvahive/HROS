@@ -1,12 +1,15 @@
 {
-  "name": "hros-calendar",
+  "homepage": "https://himanshu140505.github.io/HROS",
+  "name": "hros",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "start": "vite",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist",
     "build": "vite build",
-    "preview": "vite preview",
-    "deploy": "npm run build && gh-pages -d dist"
+    "preview": "vite preview"
   },
   "dependencies": {
     "react": "^18.2.0",

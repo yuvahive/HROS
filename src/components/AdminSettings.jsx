@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { Settings, Users, Key, Plus, Edit2, Trash2, Save, X, AlertCircle } from 'lucide-react'
+import { Settings, Users, Key, Plus, Edit2, Trash2, Save, X, AlertCircle, Download, Upload, AlertTriangle, Database } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 export default function AdminSettings() {
-  const { currentUser, users, addUser, updateUser, deleteUser, setIDPConfig, getIDPConfig, hasPermission } = useAuth()
+  const { 
+    currentUser, users, addUser, updateUser, deleteUser, setIDPConfig, getIDPConfig, 
+    hasPermission, exportSystemBackup, importSystemBackup 
+  } = useAuth()
   const [activeTab, setActiveTab] = useState('users')
   const [userList, setUserList] = useState(users)
   const [editingUser, setEditingUser] = useState(null)
@@ -76,11 +79,19 @@ export default function AdminSettings() {
     setError(null)
     setSuccess(null)
 
-    const result = updateUser(editingUser.id, editingUser)
+    // Only include password if it's actually been changed/entered
+    const updateData = { ...editingUser };
+    if (!updateData.password || updateData.password.trim() === '') {
+      delete updateData.password;
+    } else {
+      updateData.password = updateData.password.trim();
+    }
+
+    const result = updateUser(editingUser.id, updateData)
     if (result.success) {
       setSuccess('User updated successfully')
       setEditingUser(null)
-      setUserList(userList.map((u) => (u.id === editingUser.id ? editingUser : u)))
+      setUserList(userList.map((u) => (u.id === editingUser.id ? { ...u, ...updateData } : u)))
     } else {
       setError(result.error)
     }
@@ -139,6 +150,33 @@ export default function AdminSettings() {
     }
   }
 
+  const handleExportSystem = () => {
+    exportSystemBackup();
+    setSuccess('System backup generated successfully');
+  };
+
+  const handleImportSystem = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (window.confirm('WARNING: Importing a backup will overwrite ALL current users, events, and settings. Continue?')) {
+       try {
+         const result = await importSystemBackup(file);
+         setSuccess(`System restored successfully! ${result.count} users recovered.`);
+         setTimeout(() => window.location.reload(), 1500); // Reload to ensure full state sync
+       } catch (err) {
+         setError('Failed to restore backup: ' + err.message);
+       }
+    }
+  };
+
+  const handleFactoryReset = () => {
+    if (window.confirm('DANGER: This will permanently delete ALL data. Are you absolutely sure?')) {
+       localStorage.clear();
+       window.location.reload();
+    }
+  };
+
   return (
     <div className="h-full w-full flex flex-col bg-gray-50 overflow-hidden">
       {/* Header */}
@@ -188,6 +226,15 @@ export default function AdminSettings() {
         >
           <Key className="w-4 h-4 inline mr-2" />
           Identity Providers
+        </button>
+        <button
+          onClick={() => setActiveTab('maintenance')}
+          className={`px-4 py-3 font-medium transition-colors ${
+            activeTab === 'maintenance' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <Settings className="w-4 h-4 inline mr-2" />
+          Maintenance
         </button>
       </div>
 
@@ -246,6 +293,8 @@ export default function AdminSettings() {
                         onChange={(e) => setNewUserForm({ ...newUserForm, role: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
                       >
+                        <option value="admin">Admin</option>
+                        <option value="manager">Manager</option>
                         <option value="employee">Employee</option>
                         <option value="intern">Intern</option>
                       </select>
@@ -279,7 +328,7 @@ export default function AdminSettings() {
                     <div className="flex-1">
                       {editingUser?.id === user.id ? (
                         <form onSubmit={handleUpdateUser} className="space-y-3">
-                          <div className="grid grid-cols-4 gap-3">
+                          <div className="grid grid-cols-5 gap-3">
                             <input
                               type="text"
                               value={editingUser.name}
@@ -294,12 +343,20 @@ export default function AdminSettings() {
                               className="px-3 py-2 border border-gray-300 rounded text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
                               placeholder="Email"
                             />
+                            <input
+                              type="password"
+                              value={editingUser.password || ''}
+                              onChange={(e) => setEditingUser({ ...editingUser, password: e.target.value })}
+                               className="px-3 py-2 border border-gray-300 rounded text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
+                               placeholder="New Pass"
+                            />
                             <select
                               value={editingUser.role}
                               onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
                               className="px-3 py-2 border border-gray-300 rounded text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
                             >
                               <option value="admin">Admin</option>
+                              <option value="manager">Manager</option>
                               <option value="employee">Employee</option>
                               <option value="intern">Intern</option>
                             </select>
@@ -584,6 +641,79 @@ export default function AdminSettings() {
                 <p className="text-sm text-amber-900">
                   <strong>Note:</strong> This is a frontend-only configuration. For production, implement proper OAuth/SAML integration on the backend.
                 </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'maintenance' && (
+          <div className="max-w-4xl space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Backup Section */}
+              <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                    <Download size={20} />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900">System Backup</h3>
+                </div>
+                <p className="text-sm text-gray-600 mb-6">
+                  Download a complete snapshot of all users, organizational settings, 
+                  calendar events, and system logs. Use this to migrate to another browser.
+                </p>
+                <button
+                  onClick={handleExportSystem}
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
+                >
+                   <Download size={18} />
+                   Generate Full Backup (.json)
+                </button>
+              </div>
+
+              {/* Restore Section */}
+              <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-purple-100 rounded-lg text-purple-600">
+                    <Upload size={20} />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900">Restore System</h3>
+                </div>
+                <p className="text-sm text-gray-600 mb-6">
+                   Upload a previously exported backup file to restore your entire database. 
+                   <span className="text-red-500 font-bold ml-1">Warning: Overwrites existing data.</span>
+                </p>
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleImportSystem}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                  />
+                  <button className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition flex items-center justify-center gap-2">
+                     <Upload size={18} />
+                     Upload Backup File
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Danger Zone */}
+            <div className="bg-red-50 rounded-2xl p-6 border border-red-100">
+              <div className="flex items-center gap-3 mb-4 text-red-700">
+                <AlertTriangle size={20} />
+                <h3 className="text-lg font-black uppercase tracking-wider text-red-800">Danger Zone</h3>
+              </div>
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <p className="text-sm text-red-700 font-medium max-w-lg">
+                  Factory Reset will permanently wipe your entire local database including all custom users, 
+                  events, and settings. This cannot be undone.
+                </p>
+                <button 
+                  onClick={handleFactoryReset}
+                  className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition shadow-lg shadow-red-600/20 whitespace-nowrap"
+                >
+                   System Factory Reset
+                </button>
               </div>
             </div>
           </div>

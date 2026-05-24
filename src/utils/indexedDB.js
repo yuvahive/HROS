@@ -1,28 +1,49 @@
-// IndexedDB utility - Full HR System Database
-// HROS (Human Resources Operating System)
-// 16 tables for complete HR + Execution tracking
-// Data persists even after clearing site data
-// Much larger storage capacity (50MB+)
+/**
+ * HROS Cloud-Native Storage Bridge
+ * 
+ * This module replaces persistent IndexedDB with a Live In-Memory Cache
+ * that synchronizes with Google Sheets every 3 seconds.
+ * 
+ * Result: No local storage on disk. Shared real-time state.
+ */
 
-const DB_NAME = 'HROS_Calendar'
-const DB_VERSION = 2
+import { CloudStorage } from '../services/GoogleSheetsService';
+
+// The "Single Source of Truth" in memory
+let liveCache = {
+  events: [],
+  people: [],
+  hiringPipeline: [],
+  onboarding: [],
+  exits: [],
+  workLogs: [],
+  projects: [],
+  tasks: [],
+  taskComments: [],
+  checkIns: [],
+  oneOnOnes: [],
+  decisions: [],
+  actionItems: [],
+  skills: [],
+  timeOff: [],
+  compensationHistory: [],
+  teamDynamics: [],
+  redFlags: [],
+  Users: [],
+  Config: [],
+  Logs: []
+};
+
 const STORES = {
-  // Calendar & Events (legacy)
   events: 'events',
-  
-  // HR Tables
   people: 'people',
   hiringPipeline: 'hiringPipeline',
   onboarding: 'onboarding',
   exits: 'exits',
-  
-  // Execution Tables
   workLogs: 'workLogs',
   projects: 'projects',
   tasks: 'tasks',
   taskComments: 'taskComments',
-  
-  // Support & Strategy Tables
   checkIns: 'checkIns',
   oneOnOnes: 'oneOnOnes',
   decisions: 'decisions',
@@ -32,327 +53,107 @@ const STORES = {
   compensationHistory: 'compensationHistory',
   teamDynamics: 'teamDynamics',
   redFlags: 'redFlags'
-}
+};
 
-let db = null
+// ==================== LIVE SYNC ENGINE ====================
 
-// Initialize IndexedDB with all 16 tables
-export const initDB = () => {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION)
+/**
+ * Global Poller - Pulled by AuthContext every 3s
+ */
+export const syncAllFromCloud = async () => {
+  try {
+    const cloudData = await CloudStorage.fetchAll();
+    if (!cloudData) return liveCache;
 
-    request.onerror = () => {
-      console.error('IndexedDB error:', request.error)
-      reject(request.error)
-    }
+    // Merge cloud data into our live cache
+    // We favor cloud data as the master
+    Object.keys(cloudData).forEach(tabName => {
+      if (Array.isArray(cloudData[tabName])) {
+        liveCache[tabName] = cloudData[tabName];
+      }
+    });
 
-    request.onsuccess = () => {
-      db = request.result
-      console.log('IndexedDB initialized successfully with 16 tables')
-      resolve(db)
-    }
+    console.log('[LIVE SYNC] Pulse complete - Cloud state mirrored to memory');
+    return liveCache;
+  } catch (error) {
+    console.error('[LIVE SYNC] Pulse failed:', error);
+    return liveCache;
+  }
+};
 
-    request.onupgradeneeded = (event) => {
-      db = event.target.result
-      const { oldVersion } = event
-      
-      // Create or upgrade object stores
-      const storeNames = [
-        // Existing
-        STORES.events,
-        // New HR Tables
-        STORES.people,
-        STORES.hiringPipeline,
-        STORES.onboarding,
-        STORES.exits,
-        STORES.workLogs,
-        STORES.projects,
-        STORES.tasks,
-        STORES.taskComments,
-        STORES.checkIns,
-        STORES.oneOnOnes,
-        STORES.decisions,
-        STORES.actionItems,
-        STORES.skills,
-        STORES.timeOff,
-        STORES.compensationHistory,
-        STORES.teamDynamics,
-        STORES.redFlags
-      ]
+/**
+ * Initialize - Dummy for compatibility
+ */
+export const initDB = () => Promise.resolve(true);
 
-      storeNames.forEach(storeName => {
-        if (!db.objectStoreNames.contains(storeName)) {
-          db.createObjectStore(storeName, { keyPath: 'id' })
-          console.log(`Created ${storeName} object store`)
-        }
-      })
-    }
-  })
-}
+// ==================== GENERIC CRUD OVERRIDES ====================
+// These now work with memory and push to cloud immediately
 
-// ==================== GENERIC CRUD FUNCTIONS ====================
-// These work with any table/store in the database
-
-// Generic: Get all records from a table
 export const getAllFromDB = (tableName) => {
-  return new Promise((resolve, reject) => {
-    if (!db) {
-      reject(new Error('Database not initialized'))
-      return
-    }
+  return Promise.resolve(liveCache[tableName] || []);
+};
 
-    const transaction = db.transaction([tableName], 'readonly')
-    const store = transaction.objectStore(tableName)
-    const request = store.getAll()
-
-    request.onsuccess = () => {
-      resolve(request.result || [])
-    }
-
-    request.onerror = () => {
-      reject(request.error)
-    }
-  })
-}
-
-// Generic: Get single record by ID
 export const getFromDB = (tableName, id) => {
-  return new Promise((resolve, reject) => {
-    if (!db) {
-      reject(new Error('Database not initialized'))
-      return
-    }
+  const record = (liveCache[tableName] || []).find(r => r.id === id);
+  return Promise.resolve(record);
+};
 
-    const transaction = db.transaction([tableName], 'readonly')
-    const store = transaction.objectStore(tableName)
-    const request = store.get(id)
+export const addToDB = async (tableName, record) => {
+  if (!liveCache[tableName]) liveCache[tableName] = [];
+  liveCache[tableName].push(record);
+  
+  // Instant Push
+  await CloudStorage.update(tableName, liveCache[tableName]);
+  return record;
+};
 
-    request.onsuccess = () => {
-      resolve(request.result)
-    }
+export const updateInDB = async (tableName, record) => {
+  if (!liveCache[tableName]) liveCache[tableName] = [];
+  liveCache[tableName] = liveCache[tableName].map(r => r.id === record.id ? record : r);
+  
+  // Instant Push
+  await CloudStorage.update(tableName, liveCache[tableName]);
+  return record;
+};
 
-    request.onerror = () => {
-      reject(request.error)
-    }
-  })
-}
+export const deleteFromDB = async (tableName, id) => {
+  if (!liveCache[tableName]) return true;
+  liveCache[tableName] = liveCache[tableName].filter(r => r.id !== id);
+  
+  // ATOMIC DELETE PUSH
+  await CloudStorage.update(tableName, null, 'delete', id);
+  return true;
+};
 
-// Generic: Add record to table
-export const addToDB = (tableName, record) => {
-  return new Promise((resolve, reject) => {
-    if (!db) {
-      reject(new Error('Database not initialized'))
-      return
-    }
+export const clearTableDB = async (tableName) => {
+  liveCache[tableName] = [];
+  await CloudStorage.update(tableName, []);
+  return true;
+};
 
-    const transaction = db.transaction([tableName], 'readwrite')
-    const store = transaction.objectStore(tableName)
-    const request = store.add(record)
+// ==================== BACKWARDS COMPATIBILITY ====================
 
-    request.onsuccess = () => {
-      resolve(record)
-    }
-
-    request.onerror = () => {
-      reject(request.error)
-    }
-  })
-}
-
-// Generic: Update record in table
-export const updateInDB = (tableName, record) => {
-  return new Promise((resolve, reject) => {
-    if (!db) {
-      reject(new Error('Database not initialized'))
-      return
-    }
-
-    const transaction = db.transaction([tableName], 'readwrite')
-    const store = transaction.objectStore(tableName)
-    const request = store.put(record)
-
-    request.onsuccess = () => {
-      resolve(record)
-    }
-
-    request.onerror = () => {
-      reject(request.error)
-    }
-  })
-}
-
-// Generic: Delete record from table
-export const deleteFromDB = (tableName, id) => {
-  return new Promise((resolve, reject) => {
-    if (!db) {
-      reject(new Error('Database not initialized'))
-      return
-    }
-
-    const transaction = db.transaction([tableName], 'readwrite')
-    const store = transaction.objectStore(tableName)
-    const request = store.delete(id)
-
-    request.onsuccess = () => {
-      resolve(true)
-    }
-
-    request.onerror = () => {
-      reject(request.error)
-    }
-  })
-}
-
-// Generic: Clear entire table
-export const clearTableDB = (tableName) => {
-  return new Promise((resolve, reject) => {
-    if (!db) {
-      reject(new Error('Database not initialized'))
-      return
-    }
-
-    const transaction = db.transaction([tableName], 'readwrite')
-    const store = transaction.objectStore(tableName)
-    const request = store.clear()
-
-    request.onsuccess = () => {
-      console.log(`Cleared ${tableName} from IndexedDB`)
-      resolve(true)
-    }
-
-    request.onerror = () => {
-      reject(request.error)
-    }
-  })
-}
-
-// ==================== EVENTS TABLE (Backwards Compatible) ====================
-
-// Save all events to IndexedDB
 export const saveEventsDB = (events) => {
-  return new Promise((resolve, reject) => {
-    if (!db) {
-      reject(new Error('Database not initialized'))
-      return
-    }
+  liveCache.events = events;
+  return CloudStorage.update('events', events);
+};
 
-    const transaction = db.transaction([STORES.events], 'readwrite')
-    const store = transaction.objectStore(STORES.events)
+export const loadEventsDB = () => Promise.resolve(liveCache.events || []);
+export const deleteEventDB = (id) => deleteFromDB('events', id);
+export const updateEventDB = (e) => updateInDB('events', e);
+export const addEventDB = (e) => addToDB('events', e);
+export const clearAllEventsDB = () => clearTableDB('events');
 
-    // Clear existing and add new
-    store.clear()
-    
-    events.forEach(event => {
-      store.add(event)
-    })
-
-    transaction.oncomplete = () => {
-      console.log(`Saved ${events.length} events to IndexedDB`)
-      resolve(true)
-    }
-
-    transaction.onerror = () => {
-      console.error('Failed to save to IndexedDB:', transaction.error)
-      reject(transaction.error)
-    }
-  })
-}
-
-// Load all events from IndexedDB
-export const loadEventsDB = () => {
-  return new Promise((resolve, reject) => {
-    if (!db) {
-      reject(new Error('Database not initialized'))
-      return
-    }
-
-    const transaction = db.transaction([STORES.events], 'readonly')
-    const store = transaction.objectStore(STORES.events)
-    const request = store.getAll()
-
-    request.onsuccess = () => {
-      console.log(`Loaded ${request.result.length} events from IndexedDB`)
-      resolve(request.result)
-    }
-
-    request.onerror = () => {
-      console.error('Failed to load from IndexedDB:', request.error)
-      reject(request.error)
-    }
-  })
-}
-
-// Delete event from IndexedDB
-export const deleteEventDB = (eventId) => {
-  return deleteFromDB(STORES.events, eventId)
-}
-
-// Update event in IndexedDB
-export const updateEventDB = (event) => {
-  return updateInDB(STORES.events, event)
-}
-
-// Add single event to IndexedDB
-export const addEventDB = (event) => {
-  return addToDB(STORES.events, event)
-}
-
-// Clear all events (for resetting)
-export const clearAllEventsDB = () => {
-  return clearTableDB(STORES.events)
-}
-
-// ==================== DATABASE UTILITIES ====================
-
-// Get count of records in a table
-export const getCountFromDB = (tableName) => {
-  return new Promise((resolve, reject) => {
-    if (!db) {
-      reject(new Error('Database not initialized'))
-      return
-    }
-
-    const transaction = db.transaction([tableName], 'readonly')
-    const store = transaction.objectStore(tableName)
-    const request = store.count()
-
-    request.onsuccess = () => {
-      resolve(request.result)
-    }
-
-    request.onerror = () => {
-      reject(request.error)
-    }
-  })
-}
-
-// Get database stats for all tables
 export const getDBStats = () => {
-  return new Promise(async (resolve, reject) => {
-    if (!db) {
-      reject(new Error('Database not initialized'))
-      return
-    }
+  const stats = {
+    dbName: 'HROS_CLOUD_MEMORY',
+    version: 'LIVE',
+    tables: {}
+  };
+  Object.keys(liveCache).forEach(k => {
+    stats.tables[k] = liveCache[k]?.length || 0;
+  });
+  return Promise.resolve(stats);
+};
 
-    try {
-      const stats = {
-        dbName: DB_NAME,
-        version: DB_VERSION,
-        tables: {}
-      }
-
-      // Get count for each table
-      for (const [key, tableName] of Object.entries(STORES)) {
-        const count = await getCountFromDB(tableName)
-        stats.tables[key] = count
-      }
-
-      resolve(stats)
-    } catch (error) {
-      reject(error)
-    }
-  })
-}
-
-// Export stores for reference
-export { STORES }
+export { STORES };

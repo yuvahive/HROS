@@ -179,36 +179,29 @@ export default function TeamPulseBoard() {
   return (
     <div className="h-full w-full flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b p-6 mb-4">
+      <div className="bg-white border-b p-3 mb-2">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <Heart className="w-8 h-8 text-red-600" />
-              Team Pulse
-            </h1>
-            <p className="text-gray-600 mt-1">Monthly team health check-ins and sentiment</p>
-          </div>
-          <div className="flex gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">{totalTeam}</div>
-              <p className="text-xs text-gray-600">Team Size</p>
+          <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <Heart className="w-6 h-6 text-red-600" />
+            Team Pulse
+          </h1>
+          <div className="flex gap-6 text-sm">
+            <div className="text-right">
+              <div className="font-bold text-gray-900">{totalTeam}</div>
+              <p className="text-xs text-gray-500">Team Size</p>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{greenCount}</div>
-              <p className="text-xs text-gray-600">Healthy</p>
+            <div className="text-right">
+              <div className="font-bold text-green-600">{greenCount}</div>
+              <p className="text-xs text-gray-500">Healthy</p>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-red-600 flex items-center gap-1">
-                <AlertCircle className="w-5 h-5" />
+            <div className="text-right">
+              <div className="font-bold text-red-600 flex items-center justify-end gap-1">
+                <AlertCircle className="w-4 h-4" />
                 {redCount}
               </div>
-              <p className="text-xs text-gray-600">Needs Support</p>
+              <p className="text-xs text-gray-500">Needs Support</p>
             </div>
           </div>
-        </div>
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
-          <strong>Red Flags Auto-Detected:</strong> Last check-in {'>'}30 days - Working {'>'}45 hrs/week -
-          No days off {'>'}3 months - Mood decline
         </div>
       </div>
 

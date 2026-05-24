@@ -209,29 +209,26 @@ export default function OneOnOneBoard() {
   return (
     <div className="h-full w-full flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b p-6 mb-4">
+      <div className="bg-white border-b p-3 mb-2">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <Users className="w-8 h-8 text-purple-600" />
-              1:1 Meetings
-            </h1>
-            <p className="text-gray-600 mt-1">Schedule and track individual conversations</p>
-          </div>
-          <div className="flex gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{upcomingMeetings}</div>
-              <p className="text-xs text-gray-600">Upcoming</p>
+          <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <Users className="w-6 h-6 text-purple-600" />
+            1:1 Meetings
+          </h1>
+          <div className="flex gap-6 text-sm">
+            <div className="text-right">
+              <div className="font-bold text-blue-600">{upcomingMeetings}</div>
+              <p className="text-xs text-gray-500">Upcoming</p>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{completedThisWeek}</div>
-              <p className="text-xs text-gray-600">This Week</p>
+            <div className="text-right">
+              <div className="font-bold text-green-600">{completedThisWeek}</div>
+              <p className="text-xs text-gray-500">This Week</p>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">
+            <div className="text-right">
+              <div className="font-bold text-purple-600">
                 {avgWellbeing.toFixed(1)}/10
               </div>
-              <p className="text-xs text-gray-600">Avg Wellbeing</p>
+              <p className="text-xs text-gray-500">Avg Wellbeing</p>
             </div>
           </div>
         </div>

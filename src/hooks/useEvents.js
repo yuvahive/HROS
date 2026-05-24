@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { initDB, saveEventsDB, loadEventsDB, deleteEventDB, updateEventDB, addEventDB } from '../utils/indexedDB';
 import { saveEvents } from '../utils/storage';
+import { CloudStorage } from '../services/GoogleSheetsService';
 
 export const useEvents = () => {
   const [events, setEvents] = useState([]);
@@ -11,19 +12,37 @@ export const useEvents = () => {
     const initializeDB = async () => {
       try {
         await initDB();
-        const loadedEvents = await loadEventsDB();
-        setEvents(loadedEvents);
+        
+        // 1. Try Cloud First
+        const cloudData = await CloudStorage.fetchAll();
+        let currentEvents = [];
+        
+        if (cloudData && cloudData.events) {
+          currentEvents = cloudData.events;
+          await saveEventsDB(currentEvents); // Sync locally
+        } else {
+          // 2. Fallback to Local
+          currentEvents = await loadEventsDB();
+        }
+        
+        setEvents(currentEvents);
         setDbReady(true);
-        console.log('Events loaded from IndexedDB:', loadedEvents.length);
       } catch (error) {
         console.error('Failed to initialize database:', error);
-        // Fallback to localStorage if IndexedDB fails
         setDbReady(true);
       }
     };
 
     initializeDB();
   }, []);
+
+  // Sync to Cloud on change (including deletions/empty list)
+  useEffect(() => {
+    // Only push if DB is ready AND we have already attempted to load data (prevents wiping cloud on start)
+    if (dbReady) {
+      CloudStorage.update('Events', events);
+    }
+  }, [events, dbReady]);
 
   const addEvent = useCallback((event) => {
     setEvents(prev => {

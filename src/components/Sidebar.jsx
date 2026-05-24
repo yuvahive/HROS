@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Download, Upload, Settings, ChevronDown, ChevronUp, LogOut } from 'lucide-react';
+import { Plus, Search, Download, Upload, Settings, ChevronDown, ChevronUp, LogOut, Cloud, CloudOff, RefreshCw } from 'lucide-react';
 import MiniCalendar from './MiniCalendar';
 import BackupSettings from './BackupSettings';
 import { CATEGORIES } from '../utils/constants';
@@ -21,7 +21,8 @@ export const Sidebar = ({
   onToggleDarkMode,
   events,
   currentUser,
-  onLogout
+  onLogout,
+  cloudStatus
 }) => {
   const [expandedSections, setExpandedSections] = useState({
     calendar: true,
@@ -66,10 +67,25 @@ export const Sidebar = ({
 
         {/* Current User Display */}
         {currentUser && (
-          <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Logged in as:</p>
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">{currentUser.name}</p>
-            <p className="text-xs text-blue-600 dark:text-blue-400 capitalize">{currentUser.role}</p>
+          <div className="mb-4 space-y-2">
+            <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Logged in as:</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">{currentUser.name}</p>
+              <p className="text-xs text-blue-600 dark:text-blue-400 capitalize">{currentUser.role}</p>
+            </div>
+            
+            {/* Cloud Sync Status */}
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+              cloudStatus === 'online' ? 'bg-green-50 text-green-700 border-green-200' :
+              cloudStatus === 'syncing' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+              cloudStatus === 'error' ? 'bg-red-50 text-red-700 border-red-200' :
+              'bg-gray-50 text-gray-700 border-gray-200'
+            }`}>
+              {cloudStatus === 'online' && <Cloud size={12} />}
+              {cloudStatus === 'syncing' && <RefreshCw size={12} className="animate-spin" />}
+              {(cloudStatus === 'error' || cloudStatus === 'offline') && <CloudOff size={12} />}
+              Cloud Sync: {cloudStatus}
+            </div>
           </div>
         )}
 

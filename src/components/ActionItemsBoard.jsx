@@ -140,35 +140,32 @@ export default function ActionItemsBoard() {
   return (
     <div className="h-full w-full flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b p-6 mb-4">
+      <div className="bg-white border-b p-3 mb-2">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <CheckSquare className="w-8 h-8 text-green-600" />
-              Action Items
-            </h1>
-            <p className="text-gray-600 mt-1">Track decisions and follow-up actions</p>
-          </div>
-          <div className="flex gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{allActions}</div>
-              <p className="text-xs text-gray-600">Total</p>
+          <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <CheckSquare className="w-6 h-6 text-green-600" />
+            Action Items
+          </h1>
+          <div className="flex gap-6 text-sm">
+            <div className="text-right">
+              <div className="font-bold text-blue-600">{allActions}</div>
+              <p className="text-xs text-gray-500">Total</p>
             </div>
-            <div className="text-center">
-              <div className={`text-2xl font-bold ${overdueCount > 0 ? 'text-red-600' : 'text-gray-600'}`}>
+            <div className="text-right">
+              <div className={`font-bold ${overdueCount > 0 ? 'text-red-600' : 'text-gray-600'}`}>
                 {overdueCount}
               </div>
-              <p className="text-xs text-gray-600">Overdue</p>
+              <p className="text-xs text-gray-500">Overdue</p>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-600">
+            <div className="text-right">
+              <div className="font-bold text-gray-600">
                 {actionCards['in-progress']?.cards?.length || 0}
               </div>
-              <p className="text-xs text-gray-600">In Progress</p>
+              <p className="text-xs text-gray-500">In Progress</p>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{completedCount}</div>
-              <p className="text-xs text-gray-600">Completed</p>
+            <div className="text-right">
+              <div className="font-bold text-green-600">{completedCount}</div>
+              <p className="text-xs text-gray-500">Completed</p>
             </div>
           </div>
         </div>

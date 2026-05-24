@@ -3,7 +3,7 @@ import { Trash2, Edit2, CheckCircle2, Circle } from 'lucide-react';
 import { getCategoryByName, getPriorityByValue } from '../utils/constants';
 import { getFormattedDateTime, isOverdue } from '../utils/dateUtils';
 
-export const EventCard = ({ event, onEdit, onDelete, onToggleComplete, isDragSource }) => {
+export const EventCard = ({ event, onEdit, onDelete, onToggleComplete, isDragSource, compact = false }) => {
   const category = getCategoryByName(event.category);
   const priority = getPriorityByValue(event.priority);
   const eventDate = new Date(event.date);
@@ -11,70 +11,79 @@ export const EventCard = ({ event, onEdit, onDelete, onToggleComplete, isDragSou
 
   return (
     <div
-      className={`${category.bgColor} ${category.borderColor} border-l-4 p-3 rounded-lg cursor-pointer group hover:shadow-md transition ${
+      className={`${category.bgColor} ${category.borderColor} border-l-4 ${compact ? 'p-1.5' : 'p-3'} rounded-lg cursor-pointer group hover:shadow-md transition ${
         event.isCompleted ? 'opacity-60' : ''
       } ${isDragSource ? 'opacity-50' : ''}`}
       draggable="true"
     >
-      <div className="space-y-2">
+      <div className={compact ? 'space-y-1' : 'space-y-2'}>
         {/* Header */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 flex items-start gap-2">
+        <div className="flex items-start justify-between gap-1 min-w-0">
+          <div className="flex items-start gap-1 min-w-0">
             <button
               onClick={() => onToggleComplete(event.id)}
-              className="mt-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition flex-shrink-0"
+              className={`${compact ? 'mt-0.5' : 'mt-1'} text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition flex-shrink-0`}
             >
               {event.isCompleted ? (
-                <CheckCircle2 size={18} className="text-green-600" />
+                <CheckCircle2 size={compact ? 12 : 16} className="text-green-600" />
               ) : (
-                <Circle size={18} />
+                <Circle size={compact ? 12 : 16} />
               )}
             </button>
-            <div className="flex-1 min-w-0">
-              <h4 className={`font-semibold text-sm ${category.textColor} ${
+            <div className="min-w-0">
+              <h4 className={`font-bold ${compact ? 'text-[10px]' : 'text-sm'} leading-tight ${category.textColor} ${
                 event.isCompleted ? 'line-through text-gray-500' : ''
-              }`}>
+              } truncate`}>
                 {event.title}
               </h4>
               {isEventOverdue && !event.isCompleted && (
-                <p className="text-xs text-red-600 font-semibold">Overdue</p>
+                <p className={`${compact ? 'text-[8px]' : 'text-xs'} text-red-600 font-bold leading-none mt-0.5`}>Overdue</p>
               )}
             </div>
           </div>
-          <div className={`text-xs font-bold px-2 py-1 rounded ${
-            priority.value === 'high' ? 'bg-red-200 text-red-800 dark:bg-red-900 dark:text-red-200' :
-            priority.value === 'medium' ? 'bg-amber-200 text-amber-800 dark:bg-amber-900 dark:text-amber-200' :
-            'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-          }`}>
-            {priority.name}
-          </div>
+          {!compact && (
+            <div className={`text-[9px] font-black px-1.5 py-0.5 rounded flex-shrink-0 uppercase tracking-tighter ${
+              priority.value === 'high' ? 'bg-red-200 text-red-800 dark:bg-red-900 dark:text-red-200' :
+              priority.value === 'medium' ? 'bg-amber-200 text-amber-800 dark:bg-amber-900 dark:text-amber-200' :
+              'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+            }`}>
+              {priority.name}
+            </div>
+          )}
+          {compact && priority.value === 'high' && (
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0 mt-1" title="High Priority" />
+          )}
         </div>
 
         {/* Description */}
-        {event.description && (
+        {event.description && !compact && (
           <p className="text-xs text-gray-700 dark:text-gray-300 line-clamp-2">
             {event.description}
           </p>
         )}
 
         {/* Time */}
-        <div className="text-xs text-gray-600 dark:text-gray-400">
-          🕐 {event.startTime} - {event.endTime}
+        <div className={`${compact ? 'text-[9px]' : 'text-xs'} text-gray-600 dark:text-gray-400 font-medium`}>
+          {compact ? `${event.startTime}` : `🕐 ${event.startTime} - ${event.endTime}`}
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition pt-1">
+        <div className={`flex gap-1 opacity-0 group-hover:opacity-100 transition ${compact ? 'pt-0.5' : 'pt-1'}`}>
           <button
             onClick={() => onEdit(event)}
-            className="flex-1 bg-blue-100 dark:bg-blue-900 hover:bg-blue-200 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-200 font-medium py-1 rounded text-xs flex items-center justify-center gap-1 transition"
+            className="flex-1 bg-blue-100 dark:bg-blue-900 hover:bg-blue-200 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-200 font-medium py-0.5 rounded text-[10px] flex items-center justify-center transition"
+            title="Edit"
           >
-            <Edit2 size={14} /> Edit
+            <Edit2 size={compact ? 10 : 12} />
+            {!compact && <span className="ml-1">Edit</span>}
           </button>
           <button
             onClick={() => onDelete(event.id)}
-            className="flex-1 bg-red-100 dark:bg-red-900 hover:bg-red-200 dark:hover:bg-red-800 text-red-700 dark:text-red-200 font-medium py-1 rounded text-xs flex items-center justify-center gap-1 transition"
+            className="flex-1 bg-red-100 dark:bg-red-900 hover:bg-red-200 dark:hover:bg-red-800 text-red-700 dark:text-red-200 font-medium py-0.5 rounded text-[10px] flex items-center justify-center transition"
+            title="Delete"
           >
-            <Trash2 size={14} /> Delete
+            <Trash2 size={compact ? 10 : 12} />
+            {!compact && <span className="ml-1">Delete</span>}
           </button>
         </div>
       </div>

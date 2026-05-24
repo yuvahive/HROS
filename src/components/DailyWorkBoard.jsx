@@ -7,7 +7,7 @@ import { AuthContext } from '../context/AuthContext'
 import { generateID } from '../utils/sampleData'
 
 export default function DailyWorkBoard() {
-  const { currentUser } = useContext(AuthContext)
+  const { cloudStatus, lastPulse, currentUser } = useContext(AuthContext)
   const [workCards, setWorkCards] = useState({})
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
@@ -19,56 +19,56 @@ export default function DailyWorkBoard() {
     { id: 'completed', title: 'Completed', icon: '✅', color: 'green' },
     { id: 'notes', title: 'Notes', icon: '📝', color: 'gray' }
   ]
-
+  
   // Load work logs from IndexedDB
   useEffect(() => {
-    const loadWorkData = async () => {
-      try {
-        const workLogs = await getAllFromDB(STORES.workLogs)
-        const today = new Date().toISOString().split('T')[0]
-
-        const grouped = {
-          today: { cards: [] },
-          blockers: { cards: [] },
-          completed: { cards: [] },
-          notes: { cards: [] }
-        }
-
-        workLogs
-          .filter((log) => log.date === today)
-          .forEach((log) => {
-            const card = {
-              id: log.id,
-              title: `${log.personName}`,
-              subtitle: log.taskName,
-              details: [
-                `${log.hoursWorked}h done / ${log.hoursEstimated}h est`,
-                `Status: ${log.status}`,
-                log.mood ? `Mood: ${log.mood}` : ''
-              ].filter(Boolean),
-              status: log.status === 'blocked' ? 'red' : 'blue',
-              data: log
-            }
-
-            if (log.status === 'blocked') {
-              grouped.blockers.cards.push(card)
-            } else if (log.status === 'done') {
-              grouped.completed.cards.push(card)
-            } else {
-              grouped.today.cards.push(card)
-            }
-          })
-
-        setWorkCards(grouped)
-        setLoading(false)
-      } catch (error) {
-        console.error('Error loading work data:', error)
-        setLoading(false)
-      }
-    }
-
     loadWorkData()
-  }, [])
+  }, [lastPulse]) // Refresh when cloud sync pulse happens
+
+  const loadWorkData = async () => {
+    try {
+      const workLogs = await getAllFromDB(STORES.workLogs)
+      const today = new Date().toISOString().split('T')[0]
+
+      const grouped = {
+        today: { cards: [] },
+        blockers: { cards: [] },
+        completed: { cards: [] },
+        notes: { cards: [] }
+      }
+
+      workLogs
+        .filter((log) => log.date === today)
+        .forEach((log) => {
+          const card = {
+            id: log.id,
+            title: `${log.personName}`,
+            subtitle: log.taskName,
+            details: [
+              `${log.hoursWorked}h done / ${log.hoursEstimated}h est`,
+              `Status: ${log.status}`,
+              log.mood ? `Mood: ${log.mood}` : ''
+            ].filter(Boolean),
+            status: log.status === 'blocked' ? 'red' : 'blue',
+            data: log
+          }
+
+          if (log.status === 'blocked') {
+            grouped.blockers.cards.push(card)
+          } else if (log.status === 'done') {
+            grouped.completed.cards.push(card)
+          } else {
+            grouped.today.cards.push(card)
+          }
+        })
+
+      setWorkCards(grouped)
+      setLoading(false)
+    } catch (error) {
+      console.error('Error loading work data:', error)
+      setLoading(false)
+    }
+  }
 
   const handleDragEnd = async ({ card, targetColumn }) => {
     try {
@@ -170,35 +170,30 @@ export default function DailyWorkBoard() {
   return (
     <div className="h-full w-full flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b p-6 mb-4">
+      <div className="bg-white border-b p-3 mb-2">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <BarChart3 className="w-8 h-8 text-orange-600" />
-              Daily Work
-            </h1>
-            <p className="text-gray-600 mt-1">
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-            </p>
-          </div>
-          <div className="flex gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{totalCards}</div>
-              <p className="text-xs text-gray-600">Active</p>
+          <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <BarChart3 className="w-6 h-6 text-orange-600" />
+            Daily Work
+          </h1>
+          <div className="flex gap-6 text-sm">
+            <div className="text-right">
+              <div className="font-bold text-blue-600">{totalCards}</div>
+              <p className="text-xs text-gray-500">Active</p>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-red-600 flex items-center gap-1">
-                <AlertCircle className="w-5 h-5" />
+            <div className="text-right">
+              <div className="font-bold text-red-600 flex items-center justify-end gap-1">
+                <AlertCircle className="w-4 h-4" />
                 {blockedCount}
               </div>
-              <p className="text-xs text-gray-600">Blockers</p>
+              <p className="text-xs text-gray-500">Blockers</p>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600 flex items-center gap-1">
-                <CheckCircle className="w-5 h-5" />
+            <div className="text-right">
+              <div className="font-bold text-green-600 flex items-center justify-end gap-1">
+                <CheckCircle className="w-4 h-4" />
                 {completedCount}
               </div>
-              <p className="text-xs text-gray-600">Done</p>
+              <p className="text-xs text-gray-500">Done</p>
             </div>
           </div>
         </div>

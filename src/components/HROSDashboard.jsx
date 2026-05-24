@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Users, Briefcase, CheckSquare, LogOut, GitBranch, Zap, Heart, Settings, AlertTriangle, Code, BarChart3 } from 'lucide-react'
+import { Users, Briefcase, CheckSquare, LogOut, GitBranch, Zap, Heart, Settings, AlertTriangle, Code, BarChart3, Shield } from 'lucide-react'
 import HiringPipelineBoard from './HiringPipelineBoard'
 import DailyWorkBoard from './DailyWorkBoard'
 import TeamPulseBoard from './TeamPulseBoard'
@@ -13,10 +13,23 @@ import RedFlagAlert from './RedFlagAlert'
 import SlackCommandConsole from './SlackCommandConsole'
 import MetricsDashboard from './MetricsDashboard'
 import AdminSettings from './AdminSettings'
+import AdminLogViewer from './AdminLogViewer'
+import LoggingService from '../services/LoggingService'
 
 // HROS Dashboard - Main hub for all HR boards
-export default function HROSDashboard({ currentUser, logout }) {
-  const [activeBoard, setActiveBoard] = useState('hiring')
+export default function HROSDashboard({ currentUser, logout, onBackToCalendar }) {
+  // Find first allowed board to set as default
+  const getInitialBoard = () => {
+    if (currentUser?.role === 'admin') return 'hiring';
+    if (currentUser?.role === 'manager') return 'hiring';
+    return 'daily-work'; // Default for employees/interns
+  };
+
+  const [activeBoard, setActiveBoard] = useState(getInitialBoard())
+
+  useEffect(() => {
+    LoggingService.log(currentUser, 'VIEW', 'BOARD', `Opened HR Board: ${activeBoard}`);
+  }, [activeBoard, currentUser]);
 
   // All available boards with metadata
   const boards = [
@@ -26,7 +39,8 @@ export default function HROSDashboard({ currentUser, logout }) {
       description: 'Track candidates from application to hire',
       icon: Users,
       component: HiringPipelineBoard,
-      category: 'HR'
+      category: 'HR',
+      allowedRoles: ['admin', 'manager']
     },
     {
       id: 'daily-work',
@@ -34,7 +48,8 @@ export default function HROSDashboard({ currentUser, logout }) {
       description: 'Real-time shipping tracker for today',
       icon: CheckSquare,
       component: DailyWorkBoard,
-      category: 'Execution'
+      category: 'Execution',
+      allowedRoles: ['admin', 'manager', 'employee', 'intern']
     },
     {
       id: 'onboarding',
@@ -42,7 +57,8 @@ export default function HROSDashboard({ currentUser, logout }) {
       description: 'Track new hire 30-day progress',
       icon: Zap,
       component: OnboardingBoard,
-      category: 'HR'
+      category: 'HR',
+      allowedRoles: ['admin', 'manager', 'employee', 'intern']
     },
     {
       id: 'performance',
@@ -50,7 +66,8 @@ export default function HROSDashboard({ currentUser, logout }) {
       description: 'Team health & sentiment tracking',
       icon: Heart,
       component: TeamPulseBoard,
-      category: 'HR'
+      category: 'HR',
+      allowedRoles: ['admin', 'manager', 'employee', 'intern']
     },
     {
       id: 'exits',
@@ -58,7 +75,8 @@ export default function HROSDashboard({ currentUser, logout }) {
       description: 'Departures and alumni network',
       icon: LogOut,
       component: ExitsBoard,
-      category: 'HR'
+      category: 'HR',
+      allowedRoles: ['admin', 'manager']
     },
     {
       id: 'project-health',
@@ -66,7 +84,8 @@ export default function HROSDashboard({ currentUser, logout }) {
       description: 'Project status and blockers',
       icon: GitBranch,
       component: ProjectHealthBoard,
-      category: 'Execution'
+      category: 'Execution',
+      allowedRoles: ['admin', 'manager', 'employee', 'intern']
     },
     {
       id: 'action-items',
@@ -74,7 +93,8 @@ export default function HROSDashboard({ currentUser, logout }) {
       description: 'Decisions and action tracking',
       icon: Zap,
       component: ActionItemsBoard,
-      category: 'Execution'
+      category: 'Execution',
+      allowedRoles: ['admin', 'manager', 'employee', 'intern']
     },
     {
       id: 'one-on-ones',
@@ -82,7 +102,8 @@ export default function HROSDashboard({ currentUser, logout }) {
       description: 'Schedule and track conversations',
       icon: Settings,
       component: OneOnOneBoard,
-      category: 'Support'
+      category: 'Support',
+      allowedRoles: ['admin', 'manager', 'employee', 'intern']
     },
     {
       id: 'red-flags',
@@ -90,7 +111,8 @@ export default function HROSDashboard({ currentUser, logout }) {
       description: 'Auto-detect burnout, blockers & disengagement',
       icon: AlertTriangle,
       component: RedFlagAlert,
-      category: 'Support'
+      category: 'Support',
+      allowedRoles: ['admin', 'manager']
     },
     {
       id: 'commands',
@@ -98,7 +120,8 @@ export default function HROSDashboard({ currentUser, logout }) {
       description: 'Slack-like command interface',
       icon: Code,
       component: SlackCommandConsole,
-      category: 'Support'
+      category: 'Support',
+      allowedRoles: ['admin', 'manager']
     },
     {
       id: 'metrics',
@@ -106,7 +129,8 @@ export default function HROSDashboard({ currentUser, logout }) {
       description: 'KPIs and analytics dashboard',
       icon: BarChart3,
       component: MetricsDashboard,
-      category: 'Support'
+      category: 'Support',
+      allowedRoles: ['admin', 'manager']
     },
     {
       id: 'reports',
@@ -114,7 +138,17 @@ export default function HROSDashboard({ currentUser, logout }) {
       description: 'Company-wide analytics & exports',
       icon: BarChart3,
       component: ReportsBoard,
-      category: 'Support'
+      category: 'Support',
+      allowedRoles: ['admin', 'manager']
+    },
+    {
+      id: 'logs',
+      name: 'System Logs',
+      description: 'Audit logs and system activity tracking',
+      icon: Shield,
+      component: AdminLogViewer,
+      category: 'Admin',
+      allowedRoles: ['admin']
     },
     {
       id: 'settings',
@@ -123,7 +157,7 @@ export default function HROSDashboard({ currentUser, logout }) {
       icon: Settings,
       component: AdminSettings,
       category: 'Admin',
-      requiresAdmin: true
+      allowedRoles: ['admin']
     }
   ]
 
@@ -131,34 +165,49 @@ export default function HROSDashboard({ currentUser, logout }) {
   const BoardComponent = activeBoardConfig?.component
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-gray-100">
+    <div className="h-screen w-screen flex flex-col bg-gray-100 overflow-hidden">
       {/* Top Navigation */}
-      <div className="bg-gradient-to-r from-blue-700 to-blue-900 text-white p-4 shadow-lg">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">🚀 YuvaHive HROS</h1>
-            <p className="text-blue-100 text-sm">Human Resources Operating System</p>
-          </div>
-          <div className="flex items-center gap-8">
+      <div className="bg-gradient-to-r from-blue-700 to-blue-900 text-white px-6 py-4 shadow-lg flex-shrink-0">
+        <div className="flex items-center justify-between gap-4 max-w-[1920px] mx-auto w-full">
+          {/* Left: User Info */}
+          <div className="flex-shrink-0 min-w-[150px]">
             {currentUser && (
-              <div className="text-right border-r border-blue-400 pr-6">
-                <p className="text-blue-100 text-sm">Logged in as:</p>
-                <p className="font-semibold">{currentUser.name}</p>
-                <p className="text-xs text-blue-200 capitalize">{currentUser.role}</p>
+              <div className="text-left">
+                <p className="text-blue-100 text-[10px] uppercase tracking-wider mb-1">Logged in as</p>
+                <p className="font-bold text-sm truncate max-w-[200px]">{currentUser.name}</p>
+                <p className="text-[10px] text-blue-200 capitalize opacity-80">{currentUser.role}</p>
               </div>
             )}
-            <div className="text-right">
-              <p className="text-blue-100">Powered by IndexedDB</p>
-              <p className="text-xs text-blue-200">All data saved locally • No backend required</p>
+          </div>
+
+          {/* Center: Logo & Branding */}
+          <div className="flex items-center justify-center gap-3 px-4">
+            <div className="bg-white/10 p-1.5 rounded-xl backdrop-blur-sm border border-white/10 flex-shrink-0">
+              <img src="/logo.png" alt="YUVAHIVE" className="h-10 w-10 object-contain" />
             </div>
+            <div className="text-center hidden sm:block">
+              <p className="font-black text-2xl tracking-tighter leading-none italic">YUVAHIVE</p>
+              <p className="text-[10px] text-blue-100 font-medium tracking-[0.2em] uppercase mt-0.5 opacity-70">HR Management</p>
+            </div>
+          </div>
+
+          {/* Right: Back to Calendar & Logout */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={onBackToCalendar}
+              className="group flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl transition-all duration-300 font-semibold text-sm border border-white/10"
+              title="Back to Calendar"
+            >
+              <span className="group-hover:-translate-x-1 transition-transform duration-300">←</span>
+              <span>Back to Calendar</span>
+            </button>
             {logout && (
               <button
                 onClick={logout}
-                className="ml-4 flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition font-medium"
+                className="flex items-center justify-center w-10 h-10 bg-red-500/80 hover:bg-red-500 text-white rounded-xl transition-all duration-300 border border-white/10"
                 title="Logout"
               >
                 <LogOut size={18} />
-                Logout
               </button>
             )}
           </div>
@@ -166,7 +215,7 @@ export default function HROSDashboard({ currentUser, logout }) {
       </div>
 
       {/* Main Layout */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Sidebar */}
         <div className="w-64 bg-white border-r border-gray-200 overflow-y-auto">
           <div className="p-4">
@@ -175,7 +224,7 @@ export default function HROSDashboard({ currentUser, logout }) {
             </h2>
             <div className="space-y-1">
               {boards
-                .filter((b) => b.category === 'HR')
+                .filter((b) => b.category === 'HR' && b.allowedRoles.includes(currentUser?.role))
                 .map((board) => (
                   <button
                     key={board.id}
@@ -203,7 +252,7 @@ export default function HROSDashboard({ currentUser, logout }) {
             </h2>
             <div className="space-y-1">
               {boards
-                .filter((b) => b.category === 'Execution')
+                .filter((b) => b.category === 'Execution' && b.allowedRoles.includes(currentUser?.role))
                 .map((board) => (
                   <button
                     key={board.id}
@@ -231,7 +280,7 @@ export default function HROSDashboard({ currentUser, logout }) {
             </h2>
             <div className="space-y-1">
               {boards
-                .filter((b) => b.category === 'Support')
+                .filter((b) => b.category === 'Support' && b.allowedRoles.includes(currentUser?.role))
                 .map((board) => (
                   <button
                     key={board.id}
@@ -313,16 +362,7 @@ export default function HROSDashboard({ currentUser, logout }) {
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="bg-white border-t border-gray-200 px-6 py-3 text-sm text-gray-600">
-        <div className="flex justify-between items-center">
-          <p>HROS Dashboard • {boards.length} boards available</p>
-          <p>
-            ✅ {boards.filter((b) => b.component).length} Active • 🚧{' '}
-            {boards.filter((b) => !b.component).length} Coming Soon
-          </p>
-        </div>
-      </div>
+
     </div>
   )
 }
