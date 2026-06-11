@@ -3,24 +3,50 @@ import { X, Save, AlertCircle } from 'lucide-react'
 import { addToDB, updateInDB, STORES } from '../utils/indexedDB'
 import { generateID } from '../utils/sampleData'
 
-export default function OneOnOneForm({ isOpen, onClose, onSave, initialData = null, assignee = null }) {
+function sanitizeDate(value) {
+  if (!value) return ''
+  if (typeof value === 'string' && value.includes('T')) {
+    try {
+      const d = new Date(value)
+      if (!isNaN(d.getTime())) {
+        return d.toISOString().split('T')[0]
+      }
+    } catch {}
+  }
+  return value
+}
+
+function sanitizeTime(value) {
+  if (!value) return ''
+  if (typeof value === 'string' && value.includes('T')) {
+    try {
+      const d = new Date(value)
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+      }
+    } catch {}
+  }
+  return value
+}
+
+export default function OneOnOneForm({ isOpen, onClose, onSave, initialData = null, assignee = null, people = [], currentUser = null }) {
   const [formData, setFormData] = useState({
     id: '',
     personId: '',
     personName: '',
+    managerId: '',
+    managerName: '',
     scheduledDate: '',
     scheduledTime: '',
-    duration: 30, // minutes
-    meetingType: 'regular', // regular, checkin, feedback
-    status: 'scheduled', // scheduled, completed, cancelled
-    // Topics
+    duration: 30,
+    meetingType: 'regular',
+    status: 'scheduled',
     shippingUpdate: '',
     growthFeedback: '',
-    wellbeingScore: 5, // 1-10
+    wellbeingScore: 5,
     wellbeingNotes: '',
     blockers: '',
     blockerHelp: '',
-    // Outcomes
     decisions: '',
     actionItems: '',
     nextMeetingDate: '',
@@ -34,7 +60,11 @@ export default function OneOnOneForm({ isOpen, onClose, onSave, initialData = nu
 
   useEffect(() => {
     if (initialData) {
-      setFormData(initialData)
+      setFormData({
+        ...initialData,
+        scheduledDate: sanitizeDate(initialData.scheduledDate),
+        scheduledTime: sanitizeTime(initialData.scheduledTime),
+      })
     } else {
       // Reset form for new meeting
       setFormData((prev) => ({
@@ -42,6 +72,8 @@ export default function OneOnOneForm({ isOpen, onClose, onSave, initialData = nu
         id: generateID('1o1'),
         personId: assignee?.id || '',
         personName: assignee?.name || '',
+        managerId: currentUser?.id || '',
+        managerName: currentUser?.name || '',
         scheduledDate: new Date().toISOString().split('T')[0],
         scheduledTime: '10:00',
         duration: 30,
@@ -51,7 +83,7 @@ export default function OneOnOneForm({ isOpen, onClose, onSave, initialData = nu
       }))
     }
     setErrors({})
-  }, [isOpen, initialData, assignee])
+  }, [isOpen, initialData, assignee, currentUser])
 
   const validateForm = () => {
     const newErrors = {}
@@ -92,14 +124,18 @@ export default function OneOnOneForm({ isOpen, onClose, onSave, initialData = nu
 
     setSaving(true)
     try {
-      if (initialData?.id) {
-        // Update existing
-        await updateInDB(STORES.oneOnOnes, formData)
-      } else {
-        // Add new
-        await addToDB(STORES.oneOnOnes, formData)
+      // Sanitize date/time fields before saving
+      const saveData = {
+        ...formData,
+        scheduledDate: sanitizeDate(formData.scheduledDate),
+        scheduledTime: sanitizeTime(formData.scheduledTime),
       }
-      onSave(formData)
+      if (initialData?.id) {
+        await updateInDB(STORES.oneOnOnes, saveData)
+      } else {
+        await addToDB(STORES.oneOnOnes, saveData)
+      }
+      onSave(saveData)
       onClose()
     } catch (error) {
       setErrors({ submit: 'Error saving 1:1: ' + error.message })
@@ -143,17 +179,55 @@ export default function OneOnOneForm({ isOpen, onClose, onSave, initialData = nu
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Person *
                 </label>
-                <input
-                  type="text"
-                  name="personName"
-                  value={formData.personName}
-                  onChange={handleChange}
+                <select
+                  name="personId"
+                  value={formData.personId}
+                  onChange={(e) => {
+                    const selected = people.find((p) => p.id === e.target.value)
+                    setFormData((prev) => ({
+                      ...prev,
+                      personId: selected?.id || '',
+                      personName: selected?.name || ''
+                    }))
+                  }}
                   className={`w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 ${
                     errors.person ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
-                  placeholder="Select person"
-                />
+                >
+                  <option value="">Select person</option>
+                  {people.map((person) => (
+                    <option key={person.id} value={person.id}>
+                      {person.name}
+                    </option>
+                  ))}
+                </select>
                 {errors.person && <p className="text-red-600 text-xs mt-1">{errors.person}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Meeting With (Manager/HR)
+                </label>
+                <select
+                  name="managerId"
+                  value={formData.managerId}
+                  onChange={(e) => {
+                    const selected = people.find((p) => p.id === e.target.value)
+                    setFormData((prev) => ({
+                      ...prev,
+                      managerId: selected?.id || '',
+                      managerName: selected?.name || ''
+                    }))
+                  }}
+                  className="w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+                >
+                  <option value="">Select manager/HR</option>
+                  {people.map((person) => (
+                    <option key={person.id} value={person.id}>
+                      {person.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-3 gap-4">

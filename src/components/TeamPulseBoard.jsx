@@ -8,7 +8,7 @@ import { generateID } from '../utils/sampleData'
 
 // Team Performance / Pulse Board - Health monitoring
 export default function TeamPulseBoard() {
-  const { currentUser } = useContext(AuthContext)
+  const { currentUser, filterByTeam } = useContext(AuthContext)
   const [pulseCards, setPulseCards] = useState({})
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
@@ -25,6 +25,7 @@ export default function TeamPulseBoard() {
     const loadPulseData = async () => {
       try {
         const people = await getAllFromDB(STORES.people)
+        const filtered = filterByTeam(people)
         const grouped = {
           green: { cards: [] },
           yellow: { cards: [] },
@@ -32,7 +33,7 @@ export default function TeamPulseBoard() {
           onleave: { cards: [] }
         }
 
-        people.forEach((person) => {
+        filtered.forEach((person) => {
           // Sample sentiment logic based on data
           let sentiment = 'green'
           const daysSinceCheckIn = person.lastCheckInDate
@@ -106,9 +107,24 @@ export default function TeamPulseBoard() {
     try {
       const updatedRecord = {
         ...card.data,
-        // Sentiment is read-only based on data, but you could track override here
+        sentiment: targetColumn,
+        status: targetColumn
       }
       await updateInDB(STORES.people, updatedRecord)
+
+      // Track team dynamics change
+      if (card.sentiment !== targetColumn) {
+        await addToDB(STORES.teamDynamics, {
+          id: generateID('tdynamics'),
+          personId: card.data.id,
+          personName: card.data.name,
+          fromSentiment: card.sentiment,
+          toSentiment: targetColumn,
+          changedBy: currentUser?.id,
+          changedByName: currentUser?.name,
+          timestamp: new Date().toISOString()
+        })
+      }
 
       const newCards = { ...pulseCards }
       Object.keys(newCards).forEach((col) => {

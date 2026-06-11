@@ -12,7 +12,13 @@ export const TodaySchedule = ({ events, onEdit, onDelete, onToggleComplete, sele
     .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
   const upcomingEvents = events
-    .filter(e => isWithin24Hours(new Date(`${e.date}T${e.startTime}`)))
+    .filter(e => {
+      try {
+        return isWithin24Hours(new Date(`${e.date}T${e.startTime || '00:00'}`))
+      } catch {
+        return false
+      }
+    })
     .filter(e => !isSameDay(new Date(e.date), displayDate))
     .sort((a, b) => new Date(`${a.date}T${a.startTime}`) - new Date(`${b.date}T${b.startTime}`))
     .slice(0, 3);
@@ -51,7 +57,7 @@ export const TodaySchedule = ({ events, onEdit, onDelete, onToggleComplete, sele
           {filteredEvents.length > 0 ? (
             <div className="space-y-4">
               {filteredEvents.map(event => {
-                const category = getCategoryByName(event.category);
+                const category = getCategoryByName(event.category) || { bgColor: 'bg-gray-50', borderColor: 'border-gray-300', textColor: 'text-gray-700' };
                 return (
                   <div
                     key={event.id}

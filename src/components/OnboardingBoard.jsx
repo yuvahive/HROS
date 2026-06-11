@@ -2,24 +2,36 @@ import React, { useState, useEffect, useContext } from 'react'
 import { Zap, CheckCircle2, AlertCircle, Plus, Edit2, Trash2, Settings, Save, X, Bell } from 'lucide-react'
 import { getAllFromDB, updateInDB, deleteFromDB, addToDB, STORES } from '../utils/indexedDB'
 import { generateID } from '../utils/sampleData'
-import { AuthContext } from '../context/AuthContext'
+import { AuthContext, useCloudPulse } from '../context/AuthContext'
 import { CloudStorage } from '../services/GoogleSheetsService'
+import KanbanBoard from './KanbanBoard'
 
 export default function OnboardingBoard() {
-  const { cloudStatus, lastPulse, idpConfig } = useContext(AuthContext)
+  const { cloudStatus, idpConfig, hasPermission, filterByTeam } = useContext(AuthContext)
+  const lastPulse = useCloudPulse()
+  const canCreate = hasPermission('onboarding', 'create')
+  const canUpdate = hasPermission('onboarding', 'update')
+  const canDelete = hasPermission('onboarding', 'delete')
   const [onboardingRecords, setOnboardingRecords] = useState([])
   const [selectedRecord, setSelectedRecord] = useState(null)
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
-  // Load milestones from cloud config or use defaults
   const [milestones, setMilestones] = useState([
     { day: 1, title: 'Day 1: Onboarding', tasks: 'Office tour\nIT setup\nTeam intro\nSend welcome email' },
     { day: 7, title: 'Week 1: Getting Started', tasks: 'First week feedback\nSystem access\nRole clarity\nMentor assigned' },
     { day: 14, title: 'Week 2: Ramping Up', tasks: 'First project assigned\nCode/process review\nTeam sync\nInitial feedback' },
     { day: 30, title: 'Day 30: 30-Day Review', tasks: 'Performance review\nFeedback session\nCulture fit assess\nConfirm hire' }
   ])
+
+  const stages = [
+    { id: 'new', title: 'New Hires', icon: '🚀', color: 'blue' },
+    { id: 'started', title: 'Getting Started', icon: '📋', color: 'yellow' },
+    { id: 'ramping', title: 'Ramping Up', icon: '⚡', color: 'purple' },
+    { id: 'review', title: '30-Day Review', icon: '🔍', color: 'red' },
+    { id: 'completed', title: 'Confirmed', icon: '✅', color: 'green' }
+  ]
 
   useEffect(() => {
     loadOnboardingData()
@@ -34,7 +46,8 @@ export default function OnboardingBoard() {
   const loadOnboardingData = async () => {
     try {
       const records = await getAllFromDB(STORES.onboarding)
-      setOnboardingRecords(records)
+      const filtered = filterByTeam(records)
+      setOnboardingRecords(filtered)
       setLoading(false)
     } catch (error) {
       console.error('Error loading onboarding data:', error)
@@ -43,6 +56,7 @@ export default function OnboardingBoard() {
   }
 
   const handleDeleteRecord = async (id) => {
+    if (!canDelete) { alert('You don\'t have permission to delete onboarding records'); return }
     if (!window.confirm('Delete this record?')) return
     await deleteFromDB(STORES.onboarding, id)
     await loadOnboardingData()
@@ -50,8 +64,10 @@ export default function OnboardingBoard() {
 
   const handleSaveRecord = async (formData) => {
     if (selectedRecord?.id) {
+      if (!canUpdate) { alert('You don\'t have permission to update onboarding records'); return }
       await updateInDB(STORES.onboarding, formData)
     } else {
+      if (!canCreate) { alert('You don\'t have permission to create onboarding records'); return }
       await addToDB(STORES.onboarding, formData)
     }
     await loadOnboardingData()
@@ -78,19 +94,70 @@ export default function OnboardingBoard() {
     return 'new'
   }
 
-  const statusColors = {
-    new: 'bg-blue-50 border-blue-100',
-    started: 'bg-yellow-50 border-yellow-100',
-    ramping: 'bg-purple-50 border-purple-100',
-    review: 'bg-orange-50 border-orange-100',
-    completed: 'bg-green-50 border-green-100'
+  const getKanbanData = () => {
+    const grouped = { new: [], started: [], ramping: [], review: [], completed: [] }
+    onboardingRecords.forEach((record) => {
+      const status = getStatus(record)
+      const days = getDaysElapsed(record.startDate)
+      const progress = getProgressPercentage(record)
+      grouped[status].push({
+        id: record.id,
+        title: record.name,
+        subtitle: `${record.role} • ${record.department}`,
+        details: [`Day ${days}`, `${progress}% complete`],
+        tags: [record.completionStatus || 'pending'],
+        status,
+        data: record
+      })
+    })
+    return grouped
+  }
+
+  const handleDragEnd = async ({ card, targetColumn }) => {
+    if (!canUpdate) { alert('You don\'t have permission to move hires'); return }
+    const sourceStatus = card.status
+    if (sourceStatus === targetColumn) return
+
+    let updatedRecord = { ...card.data }
+    if (targetColumn === 'completed') {
+      updatedRecord.completionStatus = 'confirmed'
+    } else if (targetColumn === 'review') {
+      updatedRecord.completionStatus = 'at-risk'
+    } else {
+      updatedRecord.completionStatus = 'pending'
+    }
+    await updateInDB(STORES.onboarding, updatedRecord)
+    await loadOnboardingData()
+  }
+
+  const handleCardDelete = async (cardId) => {
+    await handleDeleteRecord(cardId)
+  }
+
+  const handleAddCard = () => {
+    if (!canCreate) { alert('You don\'t have permission to add hires'); return }
+    setSelectedRecord(null)
+    setFormOpen(true)
+  }
+
+  const handleCardClick = (card) => {
+    setSelectedRecord(card.data)
+    setFormOpen(true)
   }
 
   if (loading) return <div className="p-8 text-center text-gray-500">Syncing database...</div>
 
+  const kanbanData = getKanbanData()
+  const boardColumns = stages.map((stage) => ({
+    id: stage.id,
+    title: stage.title,
+    icon: stage.icon,
+    color: stage.color,
+    cards: kanbanData[stage.id]
+  }))
+
   return (
     <div className="h-full w-full flex flex-col bg-slate-50 overflow-hidden">
-      {/* 🚀 COMPACT HEADER */}
       <div className="bg-white border-b px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -102,8 +169,16 @@ export default function OnboardingBoard() {
               <p className="text-[10px] uppercase font-bold text-slate-400 mt-1 tracking-wider">Success Markers Dashboard</p>
             </div>
           </div>
+          <div className="flex gap-6 text-sm">
+            {stages.map((stage) => (
+              <div key={stage.id} className="text-right">
+                <div className="font-bold text-slate-900">{kanbanData[stage.id].length}</div>
+                <p className="text-xs text-gray-500">{stage.title}</p>
+              </div>
+            ))}
+          </div>
           <div className="flex gap-2">
-            <button 
+            <button
               onClick={() => setSettingsOpen(true)}
               className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
               title="Edit Global Milestones"
@@ -120,123 +195,48 @@ export default function OnboardingBoard() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 lg:p-6 bg-[#f8fbfe]">
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 max-w-[1600px] mx-auto">
-          {onboardingRecords.map((record) => {
-            const days = getDaysElapsed(record.startDate);
-            const status = getStatus(record);
-            const progress = getProgressPercentage(record);
-            
+      <div className="flex-1 overflow-hidden">
+        <KanbanBoard
+          columns={boardColumns}
+          onCardClick={handleCardClick}
+          onCardDelete={handleCardDelete}
+          onAddCard={handleAddCard}
+          onDragEnd={handleDragEnd}
+          cardContentRenderer={(card) => {
+            const days = getDaysElapsed(card.data.startDate)
+            const progress = getProgressPercentage(card.data)
             return (
-              <div key={record.id} className={`bg-white border-2 rounded-2xl p-4 flex flex-col hover:border-blue-400 transition-all duration-300 group ${statusColors[status]}`}>
-                {/* 🏷️ TIGHT CARD HEADER */}
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                       <span className="text-[9px] font-black px-2 py-0.5 rounded bg-white text-slate-600 border border-slate-200 uppercase tracking-tighter">
-                         Day {days}
-                       </span>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-black px-2 py-0.5 rounded bg-white text-slate-600 border border-slate-200 uppercase tracking-tighter">
+                    Day {days}
+                  </span>
+                  <span className="text-[9px] font-black px-2 py-0.5 rounded bg-white text-slate-600 border border-slate-200 uppercase tracking-tighter">
+                    {progress}%
+                  </span>
+                </div>
+                <h4 className="font-semibold text-sm text-gray-900">{card.title}</h4>
+                <p className="text-xs text-gray-600">{card.subtitle}</p>
+                {milestones.map((m, idx) => {
+                  const done = card.data.milestoneStatus?.[`milestone_${idx}`]
+                  const active = days >= m.day
+                  return (
+                    <div key={idx} className={`text-[10px] flex items-center gap-1 ${done ? 'text-green-600' : active ? 'text-blue-600' : 'text-gray-400'}`}>
+                      <span>{done ? '✓' : active ? '●' : '○'}</span>
+                      <span className="truncate">{m.title}</span>
                     </div>
-                    <h3 className="font-bold text-slate-900 truncate leading-tight">{record.name}</h3>
-                    <p className="text-[10px] text-slate-500 font-medium">{record.role} • {record.department}</p>
-                  </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button 
-                        onClick={async () => {
-                          if (!record.email) return alert('No email found for this hire!');
-                          const confirm = window.confirm(`Send a status nudge email to ${record.name}?`);
-                          if (confirm) {
-                            await CloudStorage.update('Notification', [{
-                              type: 'nudge',
-                              to: record.email,
-                              name: record.name,
-                              progress: progress,
-                              days: days
-                            }], 'notify');
-                            alert('Nudge sent to manager queue!');
-                          }
-                        }}
-                        className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-yellow-600"
-                        title="Send Email Nudge"
-                      >
-                        <Bell className="w-3.5 h-3.5" />
-                      </button>
-                      <button onClick={() => { setSelectedRecord(record); setFormOpen(true); }} className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-blue-600"><Edit2 className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => handleDeleteRecord(record.id)} className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
-                    </div>
-                </div>
-
-                {/* 📊 MINI STATS */}
-                <div className="flex gap-2 mb-4">
-                  <div className="bg-white bg-opacity-70 flex-1 px-2.5 py-1.5 rounded-xl border border-slate-100">
-                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 text-center">Stability</p>
-                     <p className="text-xs font-black text-slate-900 text-center">{progress}%</p>
-                  </div>
-                  <div className="bg-white bg-opacity-70 flex-1 px-2.5 py-1.5 rounded-xl border border-slate-100">
-                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 text-center">Velocity</p>
-                     <p className="text-xs font-black text-slate-900 text-center">{Math.min(days, 30)}/30</p>
-                  </div>
-                </div>
-
-                {/* 📑 COMPACT MILESTONE LIST */}
-                <div className="flex-1 space-y-2">
-                  {milestones.map((m, idx) => {
-                    const done = record.milestoneStatus?.[`milestone_${idx}`];
-                    const active = days >= m.day;
-                    return (
-                      <div key={idx} className={`p-2 rounded-xl border flex flex-col gap-1 transition-all ${done ? 'bg-green-50 border-green-200' : active ? 'bg-white border-blue-100 shadow-sm' : 'opacity-40 grayscale border-transparent'}`}>
-                        <div className="flex items-center gap-2">
-                          <input 
-                            type="checkbox" 
-                            checked={done} 
-                            disabled={!active}
-                            onChange={async (e) => {
-                              const updated = { ...record, milestoneStatus: { ...record.milestoneStatus, [`milestone_${idx}`]: e.target.checked } };
-                              await updateInDB(STORES.onboarding, updated);
-                              await loadOnboardingData();
-                            }}
-                            className="w-4 h-4 rounded-md border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer" 
-                          />
-                          <span className={`text-[11px] font-bold ${done ? 'text-green-700' : 'text-slate-700'}`}>{m.title}</span>
-                          {active && !done && <div className="w-1 h-1 bg-blue-500 rounded-full animate-pulse ml-auto" />}
-                        </div>
-                        {active && !done && (
-                          <div className="pl-6 text-[10px] text-slate-500 font-medium">
-                            {m.tasks.split('\n')[0]}...
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {/* 🔘 STATUS CAPSULE */}
-                <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between">
-                  <select
-                    value={record.completionStatus || 'pending'}
-                    onChange={async (e) => {
-                      const updated = { ...record, completionStatus: e.target.value };
-                      await updateInDB(STORES.onboarding, updated);
-                      await loadOnboardingData();
-                    }}
-                    className="w-full text-[10px] font-black uppercase tracking-widest py-2 rounded-xl border-none bg-slate-900 text-white text-center cursor-pointer hover:bg-slate-800 transition-colors"
-                  >
-                    <option value="pending">⏳ Pending Review</option>
-                    <option value="confirmed">✅ Deploy Confirmed</option>
-                    <option value="at-risk">⚠️ Risk Detected</option>
-                  </select>
-                </div>
+                  )
+                })}
               </div>
             )
-          })}
-        </div>
+          }}
+        />
       </div>
 
-      {/* ⚙️ GLOBAL MILESTONE SETTINGS MODAL */}
       {settingsOpen && (
-        <MilestoneSettings 
-          isOpen={settingsOpen} 
-          onClose={() => setSettingsOpen(false)} 
+        <MilestoneSettings
+          isOpen={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
           milestones={milestones}
           hrAlertEmail={idpConfig?.hrAlertEmail || ''}
           onSave={async (newM, hrEmail) => {
@@ -248,7 +248,6 @@ export default function OnboardingBoard() {
         />
       )}
 
-      {/* 📝 NEW HIRE MODAL */}
       {formOpen && (
         <OnboardingForm isOpen={formOpen} onClose={() => setFormOpen(false)} onSave={handleSaveRecord} initialData={selectedRecord} />
       )}

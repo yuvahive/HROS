@@ -107,13 +107,17 @@ export const getTimeString = (date) => {
 };
 
 export const getDateString = (date) => {
-  return date.toISOString().split('T')[0];
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 export const isWithin24Hours = (date) => {
   const now = new Date();
-  const diff = new Date(date) - now;
-  return diff > 0 && diff < 24 * 60 * 60 * 1000;
+  const diff = Math.abs(new Date(date) - now);
+  return diff < 24 * 60 * 60 * 1000;
 };
 
 export const getMinutesUntil = (date) => {

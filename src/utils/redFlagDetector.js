@@ -67,7 +67,12 @@ export async function detectBurnout() {
       .slice(0, 4)
 
     if (recentCheckIns.length >= 2) {
-      const moods = recentCheckIns.map((c) => c.mood || 5)
+      const moodToNumber = (mood) => {
+        if (typeof mood === 'number') return mood
+        const moodMap = { '😊': 8, '🙂': 6, '😐': 5, '😔': 3, '😢': 2, '😫': 1 }
+        return moodMap[mood] || 5
+      }
+      const moods = recentCheckIns.map((c) => moodToNumber(c.mood))
       const moodTrend = moods[0] - moods[moods.length - 1]
 
       if (moodTrend < -2 && moods[0] <= 3) {
@@ -118,7 +123,7 @@ export async function detectBurnout() {
     }
 
     // Check 4: Many overdue/blocked tasks
-    const personTasks = tasks.filter((t) => t.assigneeId === person.id)
+    const personTasks = tasks.filter((t) => t.ownerId === person.id)
     const blockedTasks = personTasks.filter((t) => t.status === 'blocked')
 
     if (blockedTasks.length >= 3) {
@@ -134,7 +139,7 @@ export async function detectBurnout() {
         metrics: {
           blockedCount: blockedTasks.length,
           totalTasks: personTasks.length,
-          blockageRate: ((blockedTasks.length / personTasks.length) * 100).toFixed(1)
+          blockageRate: personTasks.length > 0 ? ((blockedTasks.length / personTasks.length) * 100).toFixed(1) : '0'
         },
         recommended_action: 'Identify and unblock obstacles, provide support'
       })
@@ -221,7 +226,7 @@ export async function detectPerformanceIssues() {
   const flags = []
 
   people.forEach((person) => {
-    const personTasks = tasks.filter((t) => t.assigneeId === person.id)
+    const personTasks = tasks.filter((t) => t.ownerId === person.id)
 
     if (personTasks.length > 0) {
       // Check 1: Estimate accuracy
@@ -295,8 +300,14 @@ export async function detectAllRedFlags() {
     const allFlags = [...burnoutFlags, ...disengagementFlags, ...performanceFlags]
 
     // Store flags in IndexedDB
+    const existingFlags = await getAllFromDB(STORES.redFlags)
+    const existingIds = new Set(existingFlags.map(f => f.id))
     for (const flag of allFlags) {
-      await updateInDB(STORES.redFlags, flag)
+      if (existingIds.has(flag.id)) {
+        await updateInDB(STORES.redFlags, flag)
+      } else {
+        await addToDB(STORES.redFlags, flag)
+      }
     }
 
     return {
@@ -341,10 +352,9 @@ export async function resolveFlag(flagId) {
   const foundFlag = flag.find((f) => f.id === flagId)
 
   if (foundFlag) {
-    foundFlag.resolved = true
-    foundFlag.resolvedDate = new Date().toISOString()
-    await updateInDB(STORES.redFlags, foundFlag)
-    return foundFlag
+    const updatedFlag = { ...foundFlag, resolved: true, resolvedDate: new Date().toISOString() }
+    await updateInDB(STORES.redFlags, updatedFlag)
+    return updatedFlag
   }
 
   return null

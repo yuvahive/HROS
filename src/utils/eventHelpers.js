@@ -17,9 +17,9 @@ export const getIncompleteTasks = (events) => {
 };
 
 export const searchEvents = (events, searchTerm) => {
-  const term = searchTerm.toLowerCase();
+  const term = (searchTerm || '').toLowerCase();
   return events.filter(e => 
-    e.title.toLowerCase().includes(term) ||
+    (e.title || '').toLowerCase().includes(term) ||
     (e.description && e.description.toLowerCase().includes(term))
   );
 };
@@ -28,13 +28,13 @@ export const sortEventsByDate = (events) => {
   return [...events].sort((a, b) => {
     const dateCompare = new Date(a.date) - new Date(b.date);
     if (dateCompare !== 0) return dateCompare;
-    return a.startTime.localeCompare(b.startTime);
+    return (a.startTime || '').localeCompare(b.startTime || '');
   });
 };
 
 export const sortEventsByPriority = (events) => {
   const priorityOrder = { high: 0, medium: 1, low: 2 };
-  return [...events].sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+  return [...events].sort((a, b) => (priorityOrder[a.priority] ?? 3) - (priorityOrder[b.priority] ?? 3));
 };
 
 export const getEventStats = (events) => {
@@ -70,6 +70,10 @@ export const getEventDuration = (event) => {
   if (minutes < 0) {
     hours--;
     minutes += 60;
+  }
+  
+  if (hours < 0) {
+    hours += 24;
   }
   
   return { hours, minutes };

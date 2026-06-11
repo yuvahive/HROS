@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, List, Eye, EyeOff, Briefcase, LogOut, Target } from 'lucide-react';
+import { Calendar, Clock, List, Eye, EyeOff, Briefcase, LogOut } from 'lucide-react';
 
 export const Header = ({
   view,
@@ -8,7 +8,6 @@ export const Header = ({
   onSearchToggle,
   isDark,
   onSwitchToHROS,
-  onSwitchToHiveLab,
   currentUser,
   onLogout
 }) => {
@@ -33,17 +32,6 @@ export const Header = ({
             >
               <Briefcase size={16} />
               <span className="hidden sm:inline">HROS</span>
-            </button>
-          )}
-
-          {onSwitchToHiveLab && (
-            <button
-              onClick={onSwitchToHiveLab}
-              className="flex-shrink-0 flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium text-sm shadow-sm"
-              title="Switch to HiveLab Management"
-            >
-              <Target size={16} />
-              <span className="hidden sm:inline">HiveLab</span>
             </button>
           )}
         </div>

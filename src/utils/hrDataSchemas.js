@@ -383,6 +383,122 @@ export const redFlagsSchema = {
   followUpScheduled: '2024-03-25'
 }
 
+// ==================== INTERNSHIPS ====================
+export const internshipSchema = {
+  id: 'intern-001',
+  personName: 'Alex Sharma',
+  email: 'alex@college.edu',
+  phone: '+919876543210',
+  college: 'IIT Delhi',
+  major: 'Computer Science',
+  department: 'Engineering',
+  position: 'Software Engineering Intern',
+  
+  // Duration
+  startDate: '2024-06-01',
+  endDate: '2024-08-31',
+  durationWeeks: 12,
+  
+  // Assignment
+  mentor: 'emp-001', // Mentor ID
+  mentorName: 'Raj Verma',
+  reportingManager: 'emp-999',
+  
+  // Learning & Goals
+  learningObjectives: ['Learn React', 'Build full-stack features', 'Git workflow'],
+  assignedProjects: ['proj-001', 'proj-002'],
+  skillsToAcquire: ['React', 'Node.js', 'SQL'],
+  
+  // Progress & Status
+  stage: 'active', // onboarding, active, final-review, completed, rejected
+  completionPercent: 0,
+  
+  // Evaluations
+  midtermEvalDate: '2024-07-15',
+  midtermScore: null, // 1-10
+  midtermFeedback: '',
+  midtermEvalCompletedDate: null,
+  
+  finalEvalDate: '2024-08-31',
+  finalScore: null, // 1-10
+  finalFeedback: '',
+  finalEvalCompletedDate: null,
+  
+  // Competency Assessment
+  technicalCompetency: null, // 1-10
+  communicationSkills: null, // 1-10
+  teamworkRating: null, // 1-10
+  problemSolving: null, // 1-10
+  
+  // Performance Metrics
+  projectsCompleted: 0,
+  tasksCompleted: 0,
+  codeQuality: '', // excellent, good, average, needs-improvement
+  attendancePercentage: 100,
+  
+  // Certificate & Completion
+  certificateGenerated: false,
+  certificateId: null,
+  certificateGeneratedDate: null,
+  certificateFilePath: '',
+  completionNotes: '',
+  
+  // Future Opportunity
+  returnOfferExtended: false,
+  returnOfferAccepted: null,
+  ftePossible: false,
+  fteRecommendation: '', // strong-yes, yes, maybe, no
+  fteRole: '',
+  
+  // Alumni & Follow-up
+  isAlumni: false,
+  referralBonus: false,
+  linkedinConnection: false,
+  alumniNewsletter: true,
+  lastContactDate: null,
+  
+  // Administrative
+  stipendAmount: 0,
+  workHoursPerWeek: 40,
+  onboardingCompleted: false,
+  onboardingCompletedDate: null,
+  createdDate: new Date().toISOString().split('T')[0],
+  notes: '',
+  redFlags: []
+}
+
+// ==================== WORK UPLOADS ====================
+export const workUploadsSchema = {
+  id: 'upload-001',
+  uploaderId: 'emp-001',
+  uploaderName: 'Raj Verma',
+  uploaderRole: 'employee',
+  teamId: 'team-001',
+  title: 'Q1 Marketing Report',
+  description: 'Final marketing analysis for Q1 2026',
+  category: 'document',
+  projectId: '',
+  taskId: '',
+  fileName: 'Q1-report.pdf',
+  fileSize: 245000,
+  fileType: 'application/pdf',
+  fileData: '',
+  driveFileId: '',
+  driveFileUrl: '',
+  externalLink: '',
+  status: 'uploaded',
+  reviewerId: null,
+  reviewerName: null,
+  reviewDate: null,
+  reviewComments: '',
+  reviewRating: null,
+  uploadDate: new Date().toISOString(),
+  lastModifiedDate: new Date().toISOString(),
+  version: 1,
+  tags: [],
+  isArchived: false
+}
+
 // ==================== HELPER FUNCTIONS ====================
 
 // Generate unique IDs

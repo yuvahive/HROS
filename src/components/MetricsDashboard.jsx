@@ -138,7 +138,8 @@ export default function MetricsDashboard() {
       // 5. HOURS & PRODUCTIVITY
       const logsPeriod = workLogs.filter((log) => new Date(log.date) >= startDate)
       const totalHours = logsPeriod.reduce((sum, log) => sum + (log.hoursWorked || 0), 0)
-      const avgHoursPerDay = logsPeriod.length > 0 ? (totalHours / 7).toFixed(1) : 0
+      const daysSinceStart = Math.max(1, Math.ceil((new Date() - startDate) / (1000 * 60 * 60 * 24)))
+      const avgHoursPerDay = logsPeriod.length > 0 ? (totalHours / daysSinceStart).toFixed(1) : 0
 
       const productivityMetrics = {
         totalHoursLogged: totalHours.toFixed(1),

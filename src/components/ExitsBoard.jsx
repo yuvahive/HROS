@@ -1,9 +1,14 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useContext } from 'react'
 import { LogOut, Calendar, Target, MessageCircle, Plus, Edit2, Trash2 } from 'lucide-react'
 import { getAllFromDB, updateInDB, deleteFromDB, addToDB, STORES } from '../utils/indexedDB'
 import { generateID } from '../utils/sampleData'
+import { AuthContext } from '../context/AuthContext'
 
 export default function ExitsBoard() {
+  const { hasPermission, filterByTeam } = useContext(AuthContext)
+  const canCreate = hasPermission('exits', 'create')
+  const canUpdate = hasPermission('exits', 'update')
+  const canDelete = hasPermission('exits', 'delete')
   const [exits, setExits] = useState([])
   const [selectedExit, setSelectedExit] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -18,7 +23,8 @@ export default function ExitsBoard() {
   const loadExitsData = async () => {
     try {
       const records = await getAllFromDB(STORES.exits)
-      setExits(records)
+      const filtered = filterByTeam(records)
+      setExits(filtered)
       setLoading(false)
     } catch (error) {
       console.error('Error loading exits data:', error)
@@ -27,16 +33,19 @@ export default function ExitsBoard() {
   }
 
   const handleAddExit = () => {
+    if (!canCreate) { alert('You don\'t have permission to add exits'); return }
     setSelectedExit(null)
     setFormOpen(true)
   }
 
   const handleEditExit = (exit) => {
+    if (!canUpdate) { alert('You don\'t have permission to edit exits'); return }
     setSelectedExit(exit)
     setFormOpen(true)
   }
 
   const handleDeleteExit = async (id) => {
+    if (!canDelete) { alert('You don\'t have permission to delete exits'); return }
     try {
       await deleteFromDB(STORES.exits, id)
       await loadExitsData()
@@ -48,8 +57,10 @@ export default function ExitsBoard() {
   const handleSaveExit = async (formData) => {
     try {
       if (selectedExit?.id) {
+        if (!canUpdate) { alert('You don\'t have permission to update exits'); return }
         await updateInDB(STORES.exits, formData)
       } else {
+        if (!canCreate) { alert('You don\'t have permission to create exits'); return }
         await addToDB(STORES.exits, formData)
       }
       await loadExitsData()

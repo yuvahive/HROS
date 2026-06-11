@@ -72,33 +72,33 @@ export default function KanbanBoard({
   }
 
   return (
-    <div className="w-full h-full overflow-x-auto bg-gradient-to-br from-gray-50 to-gray-100 p-6 rounded-lg">
-      <div className="flex gap-6 min-w-max">
+    <div className="w-full h-full overflow-x-auto pb-2">
+      <div className="flex gap-4 md:gap-6 min-w-max p-4 md:p-6">
         {columns.map((column) => (
           <div
             key={column.id}
-            className={`flex flex-col w-80 rounded-lg border-2 ${getColumnColor(column.color)} shadow-sm`}
+            className={`flex flex-col w-72 md:w-80 rounded-lg border-2 ${getColumnColor(column.color)} shadow-sm flex-shrink-0`}
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, column.id)}
           >
             {/* Column Header */}
-            <div className="p-4 border-b bg-white rounded-t-md">
+            <div className="p-3 md:p-4 border-b bg-white dark:bg-gray-800 rounded-t-md">
               <div className="flex justify-between items-center mb-2">
-                <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                <h3 className="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2 text-sm md:text-base">
                   {column.icon && <span>{column.icon}</span>}
                   {column.title}
                 </h3>
-                <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full">
+                <span className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-full">
                   {column.cards?.length || 0}
                 </span>
               </div>
               {column.subtitle && (
-                <p className="text-xs text-gray-600">{column.subtitle}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{column.subtitle}</p>
               )}
             </div>
 
             {/* Cards Container */}
-            <div className="flex-1 p-3 space-y-3 overflow-y-auto min-h-96">
+            <div className="flex-1 p-2 md:p-3 space-y-2 md:space-y-3 overflow-y-auto min-h-[200px] md:min-h-96">
               {column.cards && column.cards.length > 0 ? (
                 column.cards.map((card) => (
                   <div
@@ -106,42 +106,38 @@ export default function KanbanBoard({
                     draggable
                     onDragStart={(e) => handleDragStart(e, card, column.id)}
                     onClick={() => onCardClick(card)}
-                    className={`${getCardBgColor(card.status)} p-3 rounded-md border-2 cursor-move hover:shadow-md transition-shadow group`}
+                    className={`${getCardBgColor(card.status)} p-2 md:p-3 rounded-md border-2 cursor-move hover:shadow-md transition-shadow group`}
                   >
                     <div className="flex flex-col h-full">
                       <div className="flex-1">
-                        {/* Custom Card Renderer */}
                         {cardContentRenderer ? (
                           cardContentRenderer(card)
                         ) : (
                           <>
-                            {/* Default Card Layout */}
                             <div className="flex justify-between items-start mb-2">
                               <div className="flex-1">
-                                <h4 className="font-medium text-sm text-gray-900">{card.title}</h4>
+                                <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100">{card.title}</h4>
                                 {card.subtitle && (
-                                  <p className="text-xs text-gray-600 mt-0.5">{card.subtitle}</p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{card.subtitle}</p>
                                 )}
                               </div>
-                              <GripVertical className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100" />
+                              <GripVertical className="w-4 h-4 text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100" />
                             </div>
 
-                            {/* Card Details */}
                             {card.details && (
-                              <div className="space-y-1 text-xs text-gray-700 mb-2">
+                              <div className="space-y-1 text-xs text-gray-700 dark:text-gray-300 mb-2">
                                 {card.details.map((detail, idx) => (
                                   <p key={idx}>{detail}</p>
                                 ))}
                               </div>
                             )}
 
-                            {/* Card Tags */}
                             {card.tags && card.tags.length > 0 && (
                               <div className="flex flex-wrap gap-1 mb-2">
                                 {card.tags.map((tag, idx) => (
                                   <span
                                     key={idx}
-                                    className="text-xs bg-gray-300 text-gray-700 px-1.5 py-0.5 rounded"
+                                    className="text-xs bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-1.5 py-0.5 rounded"
                                   >
                                     {tag}
                                   </span>
@@ -152,34 +148,33 @@ export default function KanbanBoard({
                         )}
                       </div>
 
-                      {/* Card Actions - Always show delete if callback is provided */}
-                      <div className="mt-2 pt-2 border-t border-gray-100 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
                             onCardDelete(card.id, column.id)
                           }}
-                          className="text-[10px] uppercase tracking-wider font-bold bg-red-50 text-red-600 border border-red-100 px-2 py-1 rounded hover:bg-red-100 flex items-center gap-1 transition-colors"
+                          className="text-[10px] uppercase tracking-wider font-bold bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800 px-2 py-1 rounded hover:bg-red-100 dark:hover:bg-red-900/50 flex items-center gap-1 transition-colors"
                         >
                           <Trash2 className="w-3 h-3" />
-                          Delete Card
+                          Delete
                         </button>
                       </div>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-8 md:py-12 text-gray-500 dark:text-gray-400">
                   <p className="text-sm">No cards yet</p>
                 </div>
               )}
             </div>
 
             {/* Add Card Button */}
-            <div className="p-3 border-t bg-white rounded-b-md">
+            <div className="p-2 md:p-3 border-t bg-white dark:bg-gray-800 rounded-b-md">
               <button
                 onClick={() => onAddCard(column.id)}
-                className="w-full flex items-center justify-center gap-2 text-sm text-blue-600 hover:bg-blue-50 p-2 rounded transition-colors"
+                className="w-full flex items-center justify-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 p-2 rounded transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 Add {column.title}

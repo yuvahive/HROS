@@ -4,6 +4,7 @@ import { getCategoryByName, getPriorityByValue } from '../utils/constants';
 import { getFormattedDateTime, isOverdue } from '../utils/dateUtils';
 
 export const EventCard = ({ event, onEdit, onDelete, onToggleComplete, isDragSource, compact = false }) => {
+  if (!event) return null;
   const category = getCategoryByName(event.category);
   const priority = getPriorityByValue(event.priority);
   const eventDate = new Date(event.date);
@@ -21,7 +22,7 @@ export const EventCard = ({ event, onEdit, onDelete, onToggleComplete, isDragSou
         <div className="flex items-start justify-between gap-1 min-w-0">
           <div className="flex items-start gap-1 min-w-0">
             <button
-              onClick={() => onToggleComplete(event.id)}
+              onClick={() => onToggleComplete?.(event.id)}
               className={`${compact ? 'mt-0.5' : 'mt-1'} text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition flex-shrink-0`}
             >
               {event.isCompleted ? (
@@ -70,7 +71,7 @@ export const EventCard = ({ event, onEdit, onDelete, onToggleComplete, isDragSou
         {/* Actions */}
         <div className={`flex gap-1 opacity-0 group-hover:opacity-100 transition ${compact ? 'pt-0.5' : 'pt-1'}`}>
           <button
-            onClick={() => onEdit(event)}
+            onClick={() => onEdit?.(event)}
             className="flex-1 bg-blue-100 dark:bg-blue-900 hover:bg-blue-200 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-200 font-medium py-0.5 rounded text-[10px] flex items-center justify-center transition"
             title="Edit"
           >
@@ -78,7 +79,7 @@ export const EventCard = ({ event, onEdit, onDelete, onToggleComplete, isDragSou
             {!compact && <span className="ml-1">Edit</span>}
           </button>
           <button
-            onClick={() => onDelete(event.id)}
+            onClick={() => onDelete?.(event.id)}
             className="flex-1 bg-red-100 dark:bg-red-900 hover:bg-red-200 dark:hover:bg-red-800 text-red-700 dark:text-red-200 font-medium py-0.5 rounded text-[10px] flex items-center justify-center transition"
             title="Delete"
           >

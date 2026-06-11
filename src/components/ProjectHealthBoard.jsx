@@ -6,7 +6,10 @@ import { generateID } from '../utils/sampleData'
 import { AuthContext } from '../context/AuthContext'
 
 export default function ProjectHealthBoard() {
-  const { currentUser } = useContext(AuthContext)
+  const { currentUser, hasPermission, filterByTeam } = useContext(AuthContext)
+  const canCreate = hasPermission('projects', 'create')
+  const canUpdate = hasPermission('projects', 'update')
+  const canDelete = hasPermission('projects', 'delete')
   const [projectCards, setProjectCards] = useState({})
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
@@ -29,6 +32,7 @@ export default function ProjectHealthBoard() {
   const loadProjectData = async () => {
     try {
       const projects = await getAllFromDB(STORES.projects)
+      const filtered = filterByTeam(projects)
       const grouped = {
         planning: { cards: [] },
         'in-progress': { cards: [] },
@@ -38,7 +42,7 @@ export default function ProjectHealthBoard() {
         'on-hold': { cards: [] }
       }
 
-      projects.forEach((project) => {
+      filtered.forEach((project) => {
         const daysRemaining = Math.ceil(
           (new Date(project.dueDate) - new Date()) / (1000 * 60 * 60 * 24)
         )
@@ -74,6 +78,7 @@ export default function ProjectHealthBoard() {
   }
 
   const handleDragEnd = async ({ card, targetColumn }) => {
+    if (!canUpdate) { alert('You don\'t have permission to update projects'); return }
     try {
       const updatedRecord = {
         ...card.data,
@@ -87,6 +92,7 @@ export default function ProjectHealthBoard() {
   }
 
   const handleCardDelete = async (cardId, statusId) => {
+    if (!canDelete) { alert('You don\'t have permission to delete projects'); return }
     try {
       await deleteFromDB(STORES.projects, cardId)
       await loadProjectData()
@@ -96,11 +102,13 @@ export default function ProjectHealthBoard() {
   }
 
   const handleAddCard = (statusId) => {
+    if (!canCreate) { alert('You don\'t have permission to create projects'); return }
     setSelectedProject(null)
     setFormOpen(true)
   }
 
   const handleCardClick = (card) => {
+    if (!canUpdate) { alert('You don\'t have permission to edit projects'); return }
     setSelectedProject(card.data)
     setFormOpen(true)
   }

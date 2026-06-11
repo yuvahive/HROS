@@ -1,459 +1,948 @@
-# HROS - Human Resource Operating System
+# YUVAHIVE HROS — Human Resource Operating System
 
-A comprehensive personal calendar and HR management web application built with React, Vite, and Tailwind CSS. Designed for efficient event management, task tracking, HR operations, and team collaboration.
-
-## 🎯 Quick Start (30 seconds)
-
-```bash
-# 1. Install dependencies
-npm install
-
-# 2. Start development server
-npm run dev
-
-# 3. Open browser at http://localhost:5173
-```
-
-That's it! The app opens with a modern calendar interface ready for use.
+A complete HR management platform with real-time cloud sync, role-based access control, team management, and psychological design principles.
 
 ---
 
-## 📦 What's Included
+## Tech Stack
 
-### Core Features
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 19 + Vite |
+| Styling | Tailwind CSS + Framer Motion |
+| Icons | Lucide React |
+| Backend | Google Apps Script (Code.gs v9.1) |
+| Database | Google Sheets (cloud) + In-memory cache (local) |
+| Auth | Email/password with session persistence |
 
-#### 📅 **Calendar Views**
-- **Month View** - Full calendar overview with all events visible
-- **Week View** - Focused 7-day planning with hourly grid
-- **Day View** - Detailed hourly schedule with 15-minute increments
+---
 
-#### ✅ **Event Management**
-- Create, edit, delete, and complete events
-- Event categories: Meeting, Call, Task, Personal
-- Priority levels: Low, Medium, High  
-- Time tracking and duration management
-- Event descriptions and detailed notes
+## System Architecture
 
-#### 🎯 **Smart Features**
-- **Today's Schedule** - Quick overview of your day
-- **Upcoming Events** - Next 24-hour preview
-- **Overdue Tracking** - Automatic highlighting of past-due tasks
-- **Browser Notifications** - 15-minute reminders before events
-- **Color-Coded Display** - Visual distinction by category/priority
+```
+┌─────────────────────────────────────────────────┐
+│                   FRONTEND                       │
+│  React App ←→ In-Memory Cache ←→ localStorage    │
+│                    ↕ (3s pulse)                   │
+│           Google Sheets Service                  │
+└─────────────────────┬───────────────────────────┘
+                      │ HTTPS
+┌─────────────────────▼───────────────────────────┐
+│         Google Apps Script (Code.gs v9.1)        │
+│  doGet / doPost → CRUD → Google Sheets           │
+│  Auto-creates missing sheets with headers        │
+│  Notification engine (email)                     │
+└─────────────────────────────────────────────────┘
+```
 
-#### 🔍 **Search & Organization**
-- Full-text event search (press `/`)
-- Filter by category
-- Filter by priority level
-- Quick event list in sidebar
+**Data Flow:**
+1. User logs in → credentials validated against Users sheet
+2. 3-second heartbeat fetches all sheet data into `liveCache`
+3. Boards read from `liveCache` via `getAllFromDB()`
+4. User actions write to `liveCache` + queue in localStorage
+5. Next heartbeat pushes pending changes to Google Sheets via GAS
 
-#### ⌨️ **Keyboard Shortcuts**
-| Shortcut | Action |
+---
+
+## Roles (5)
+
+| Role | Description | Board Access |
+|------|-------------|--------------|
+| **admin** | Full system control. Manages users, settings, logs. Can impersonate any role via "View As". | 20 boards |
+| **HR** | Organization-wide HR management. Full access to all HR operations and teams. | 20 boards |
+| **TeamLead** | Team-level management. Sees only their assigned team's data via `filterByTeam()`. | 17 boards (no Commands, Logs, Settings) |
+| **Employee** | Self-service + team visibility. Limited to own profile, team boards, and personal tasks. | 11 boards |
+| **Intern** | Read-mostly. Minimal access to personal and team boards. | 7 boards |
+
+---
+
+## Sidebar Sections — Complete Reference
+
+### MY SPACE
+
+#### My Dashboard
+Personal command center. Shows upcoming meetings, pending tasks, team status, and quick actions.
+
+| Role | Access | CRUD |
+|------|--------|------|
+| Admin | ✅ | Can request meetings, log work, request time off |
+| HR | ✅ | Same as admin |
+| TeamLead | ✅ | Same as admin |
+| Employee | ✅ | Same as admin |
+| Intern | ✅ | Same as admin |
+
+**Psychological purpose:** Anchoring. Users start here, feel oriented, then branch out. Prevents "where do I begin?" paralysis.
+
+---
+
+#### My Profile
+Self-service profile management. Employees manage their identity, skills, preferences, and compensation history.
+
+| Role | Access | CRUD |
+|------|--------|------|
+| Admin | ✅ | Can edit any field |
+| HR | ✅ | Can edit any field |
+| TeamLead | ✅ | Can edit own profile |
+| Employee | ✅ | Can edit own profile |
+| Intern | ✅ | Can edit own profile |
+
+**Psychological purpose:** Autonomy. People feel invested in a system they help populate.
+
+---
+
+#### Organization
+Org chart and team structure visualization. Shows reporting lines, team composition, and role distribution.
+
+| Role | Access | CRUD |
+|------|--------|------|
+| Admin | ✅ | View only |
+| HR | ✅ | View only |
+| TeamLead | ✅ | View only |
+| Employee | 👁️ | View only |
+| Intern | 👁️ | View only |
+
+**Psychological purpose:** Social proof and orientation. New hires use this constantly. Reduces "who do I ask?" anxiety.
+
+---
+
+### TEAM
+
+#### Team Sync
+Real-time what everyone is working on. Async standup replacement.
+
+| Role | Access | CRUD |
+|------|--------|------|
+| Admin | ✅ | Full CRUD |
+| HR | ✅ | Full CRUD |
+| TeamLead | ✅ | Full CRUD |
+| Employee | ✅ | Full CRUD |
+| Intern | ✅ | Full CRUD |
+
+**Psychological purpose:** Social facilitation. Knowing others can see your progress motivates action.
+
+---
+
+#### Team Work
+Kanban task board. Visual workflow from "To Do" → "In Progress" → "Done".
+
+| Role | Access | CRUD |
+|------|--------|------|
+| Admin | ✅ | Full CRUD |
+| HR | ✅ | Full CRUD |
+| TeamLead | ✅ | Full CRUD |
+| Employee | ✅ | Full CRUD |
+| Intern | ✅ | Full CRUD |
+
+All roles have `hasPermission('actions', 'create/update/delete')` checks enforced.
+
+**Psychological purpose:** Progress visualization. Moving cards releases dopamine. The "Done" column becomes a trophy wall.
+
+---
+
+#### 1:1 Meetings
+Structured meeting scheduler with prep notes and follow-up tracking.
+
+| Role | Access | CRUD |
+|------|--------|------|
+| Admin | ✅ | Can schedule, conduct, and review all meetings |
+| HR | ✅ | Same as admin |
+| TeamLead | ✅ | Same as admin |
+| Employee | ✅ | Can request meetings with their lead |
+| Intern | ✅ | Can request meetings with mentor/lead |
+
+**Psychological purpose:** Psychological safety. Regular 1:1s signal "you matter as a person, not just a worker."
+
+---
+
+#### Projects
+Cross-functional project health tracking with status, blockers, and ownership.
+
+| Role | Access | CRUD |
+|------|--------|------|
+| Admin | ✅ | Full CRUD |
+| HR | ✅ | Full CRUD |
+| TeamLead | ✅ | Full CRUD |
+| Employee | 👁️ | Read only |
+| Intern | ❌ | No access |
+
+Employee has `projects: ['read']` in resource permissions. Board-level access includes `project-health` for employees.
+
+**Psychological purpose:** Purpose. Connecting daily tasks to larger projects answers "why does my work matter?"
+
+---
+
+#### Action Items
+Decision tracking with owners and deadlines. Prevents "who was supposed to do that?" syndrome.
+
+| Role | Access | CRUD |
+|------|--------|------|
+| Admin | ✅ | Full CRUD |
+| HR | ✅ | Full CRUD |
+| TeamLead | ✅ | Full CRUD |
+| Employee | ✅ | Create, Read, Update (no delete) |
+| Intern | 👁️ | Read only |
+
+Employee has `actions: ['create', 'read', 'update']` — no delete permission.
+
+**Psychological purpose:** Commitment. Written commitments are stronger than verbal ones.
+
+---
+
+### HR OPERATIONS
+
+#### Hiring Pipeline
+Candidate journey from application → screening → interview → offer → hire.
+
+| Role | Access | CRUD |
+|------|--------|------|
+| Admin | ✅ | Full CRUD |
+| HR | ✅ | Create, Read, Update (no delete) |
+| TeamLead | ✅ | Create, Read, Update (no delete) |
+| Employee | ❌ | No access |
+| Intern | ❌ | No access |
+
+HR and TeamLead have `hiring: ['create', 'read', 'update']`. Only admin can delete candidates.
+
+**Psychological purpose:** Fairness. Structured pipelines reduce bias.
+
+---
+
+#### Onboarding
+30-day new hire success roadmap with checklist, mentor assignment, and progress tracking.
+
+| Role | Access | CRUD |
+|------|--------|------|
+| Admin | ✅ | Full CRUD |
+| HR | ✅ | Create, Read, Update (no delete) |
+| TeamLead | ✅ | Create, Read, Update (no delete) |
+| Employee | ❌ | No access |
+| Intern | ❌ | No access |
+
+**Psychological purpose:** Belonging. A structured onboarding says "we planned for you."
+
+---
+
+#### Internships
+Intern lifecycle: onboarding, goals, evaluations, and outcomes.
+
+| Role | Access | CRUD |
+|------|--------|------|
+| Admin | ✅ | Full CRUD |
+| HR | ✅ | Full CRUD |
+| TeamLead | ✅ | Full CRUD |
+| Employee | ❌ | No access |
+| Intern | ❌ | No access |
+
+**Psychological purpose:** Investment. Structured internships signal "we're building your future."
+
+---
+
+#### Team Pulse
+Sentiment and mood tracking. Early warning system for team dysfunction.
+
+| Role | Access | CRUD |
+|------|--------|------|
+| Admin | ✅ | Full CRUD |
+| HR | ✅ | Full CRUD |
+| TeamLead | ✅ | Full CRUD |
+| Employee | ❌ | No access |
+| Intern | ❌ | No access |
+
+**Psychological purpose:** Emotional intelligence. Regular pulse checks normalize talking about feelings at work.
+
+---
+
+#### Exits & Alumni
+Departure management and alumni network tracking.
+
+| Role | Access | CRUD |
+|------|--------|------|
+| Admin | ✅ | Full CRUD |
+| HR | 👁️ | Read only (`exits: ['read']`) |
+| TeamLead | 👁️ | Read only (`exits: ['read']`) |
+| Employee | ❌ | No access |
+| Intern | ❌ | No access |
+
+HR and TeamLead can view exit records but cannot create, edit, or delete them. Only admin has full CRUD on exits.
+
+**Psychological purpose:** Closure. Structured exits prevent burning bridges.
+
+---
+
+### TEAMS
+
+#### Teams
+Team creation and management. HR/Admin creates teams, assigns TeamLeads, manages members.
+
+| Role | Access | CRUD |
+|------|--------|------|
+| Admin | ✅ | Full CRUD (create, read, update, delete) |
+| HR | ✅ | Full CRUD (create, read, update, delete) |
+| TeamLead | ✅ | Create, Read, Update (no delete) |
+| Employee | 👁️ | Read only (`teams: ['read']`) |
+| Intern | 👁️ | Read only (`teams: ['read']`) |
+
+**Three views inside:**
+1. **Org Chart** — Visual hierarchy: lead at top, members below with roles and task counts
+2. **Tasks** — Kanban board of all tasks scoped to this team
+3. **Members** — Card/list view with name, role, email, task count. Actions: Make Lead, Remove
+
+**Psychological purpose:** Identity. Teams create "us" feeling. Knowing your team's composition creates belonging.
+
+---
+
+### WELLBEING
+
+#### Team Wellness
+Wellbeing check-ins. Tracks mental health indicators, energy levels, and support needs.
+
+| Role | Access | CRUD |
+|------|--------|------|
+| Admin | ✅ | Full CRUD (no internal `hasPermission` checks — board access = full access) |
+| HR | ✅ | Full CRUD |
+| TeamLead | ✅ | Full CRUD |
+| Employee | ✅ | Full CRUD (board access granted, no internal permission checks) |
+| Intern | ❌ | No access |
+
+Note: WellnessBoard has no internal `hasPermission` checks. Board-level access via ProtectedRoute is the only gate. Employee has board access, so they have full CRUD within the board.
+
+**Psychological purpose:** Care. When the org asks "how are you?" and acts on the answer, trust multiplies.
+
+---
+
+### INSIGHTS
+
+#### Metrics
+KPI dashboard with visual charts. Hiring velocity, onboarding completion, team health, action item rates.
+
+| Role | Access | CRUD |
+|------|--------|------|
+| Admin | ✅ | Read only (dashboard, no CRUD) |
+| HR | ✅ | Read only |
+| TeamLead | ✅ | Read only |
+| Employee | 👁️ | Read only |
+| Intern | ❌ | No access |
+
+MetricsDashboard is read-only — no create/edit/delete functionality.
+
+**Psychological purpose:** Competence. Metrics prove "we're making progress." Reduces imposter syndrome.
+
+---
+
+#### Reports
+Deep analytics with exportable data. Cross-tabulated reports and trend analysis.
+
+| Role | Access | CRUD |
+|------|--------|------|
+| Admin | ✅ | Read + Export |
+| HR | ✅ | Read + Export |
+| TeamLead | ✅ | Read + Export |
+| Employee | ❌ | No access |
+| Intern | ❌ | No access |
+
+`reports: ['read', 'export']` for Admin, HR, TeamLead. Employee and intern have no reports access.
+
+**Psychological purpose:** Authority. Data-backed arguments carry more weight.
+
+---
+
+### ADMIN
+
+#### Commands
+System command interface. Direct data manipulation and bulk operations.
+
+| Role | Access | CRUD |
+|------|--------|------|
+| Admin | ✅ | Full access |
+| HR | ❌ | No access |
+| TeamLead | ❌ | No access |
+| Employee | ❌ | No access |
+| Intern | ❌ | No access |
+
+**Psychological purpose:** Control. Admins feel powerful and responsive.
+
+---
+
+#### System Logs
+Audit trail of all user actions with timestamp, user, and details.
+
+| Role | Access | CRUD |
+|------|--------|------|
+| Admin | ✅ | Full access |
+| HR | ❌ | No access |
+| TeamLead | ❌ | No access |
+| Employee | ❌ | No access |
+| Intern | ❌ | No access |
+
+**Psychological purpose:** Trust. When people know actions are logged, they behave more responsibly.
+
+---
+
+#### Admin Settings
+User management, IDP configuration, backup/restore, factory reset.
+
+| Role | Access | CRUD |
+|------|--------|------|
+| Admin | ✅ | Full access |
+| HR | ❌ | No access |
+| TeamLead | ❌ | No access |
+| Employee | ❌ | No access |
+| Intern | ❌ | No access |
+
+**Psychological purpose:** Sovereignty. The admin owns the system.
+
+---
+
+## Complete Permission Matrix
+
+### Board Access
+
+| Board | ID | Admin | HR | TeamLead | Employee | Intern |
+|-------|-----|-------|-----|----------|----------|--------|
+| My Dashboard | `my-dashboard` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| My Profile | `my-profile` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Organization | `org-chart` | ✅ | ✅ | ✅ | 👁️ | 👁️ |
+| Team Sync | `team-sync` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Team Work | `daily-work` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 1:1 Meetings | `one-on-ones` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Projects | `project-health` | ✅ | ✅ | ✅ | 👁️ | ❌ |
+| Action Items | `action-items` | ✅ | ✅ | ✅ | ✅ | 👁️ |
+| Hiring Pipeline | `hiring` | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Onboarding | `onboarding` | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Internships | `internships` | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Team Pulse | `performance` | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Exits & Alumni | `exits` | ✅ | 👁️ | 👁️ | ❌ | ❌ |
+| Teams | `teams` | ✅ | ✅ | ✅ | 👁️ | 👁️ |
+| Team Wellness | `wellness` | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Metrics | `metrics` | ✅ | ✅ | ✅ | 👁️ | ❌ |
+| Reports | `reports` | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Commands | `commands` | ✅ | ❌ | ❌ | ❌ | ❌ |
+| System Logs | `logs` | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Admin Settings | `settings` | ✅ | ❌ | ❌ | ❌ | ❌ |
+
+*(✅ = Full access, 👁️ = View/read only, ❌ = No access)*
+
+### Resource-Level Permissions
+
+| Resource | Admin | HR | TeamLead | Employee | Intern |
+|----------|-------|-----|----------|----------|--------|
+| users | C R U D | R U | R U | R | R |
+| settings | R U | R | R | R | R |
+| reports | R E | R E | R E | — | — |
+| hiring | C R U D | C R U | C R U | — | — |
+| onboarding | C R U D | C R U | C R U | — | — |
+| exits | C R U D | R | R | — | — |
+| projects | C R U D | C R U D | C R U D | R | R |
+| actions | C R U D | C R U D | C R U D | C R U | R |
+| teams | C R U D | C R U D | C R U | R | R |
+
+*(C=Create, R=Read, U=Update, D=Delete, E=Export, —=No Access)*
+
+---
+
+## Data Visibility — Who Sees Whose Data
+
+This section answers the critical question: **When I open a board, whose data do I see?**
+
+### How Filtering Works
+
+The system has three levels of data visibility:
+
+1. **Board-level access** — Can you open this board at all? (ProtectedRoute + `hasPermission`)
+2. **Team-level filtering** — `filterByTeam()` scopes data to your assigned team (TeamLead only)
+3. **User-level filtering** — Some boards filter to only YOUR data (e.g., MyDashboard)
+
+**Key rule:** `filterByTeam()` ONLY applies to the **TeamLead** role. Admin, HR, Employee, and Intern see ALL records (no team scoping) unless the board has additional user-level filtering.
+
+---
+
+### Board-by-Board Visibility
+
+#### My Dashboard
+**Data scope: OWN data only**
+
+| Data Type | What You See | Filter Mechanism |
+|-----------|-------------|------------------|
+| Work logs | Only YOUR work logs | `w.personId === currentUser.id \|\| w.personName === currentUser.name` |
+| 1:1 meetings | Only YOUR meetings (as participant or manager) | `m.personId === currentUser.id \|\| m.managerId === currentUser.id` |
+| Team section | Your direct reports, your manager, same-team peers | `p.manager === myInfo.id \|\| p.id === myInfo.manager \|\| p.team === myInfo.team` |
+| Fallback | If no person record found, shows first 6 people | `people.slice(0, 6)` — potential data leak |
+
+| Role | Sees Their Own? | Sees Others? |
+|------|-----------------|--------------|
+| Admin | ✅ Own data | ❌ Cannot see other dashboards |
+| HR | ✅ Own data | ❌ Cannot see other dashboards |
+| TeamLead | ✅ Own data | ❌ Cannot see other dashboards |
+| Employee | ✅ Own data | ❌ Cannot see other dashboards |
+| Intern | ✅ Own data | ❌ Cannot see other dashboards |
+
+**Answer: No, admin/HR CANNOT view an employee's personal dashboard. Everyone sees only their own.**
+
+---
+
+#### My Profile (EmployeeSelfService)
+**Data scope: OWN profile only**
+
+| Data Type | What You See | Filter Mechanism |
+|-----------|-------------|------------------|
+| Profile | Only YOUR person record | `p.id === currentUser.id \|\| p.name === currentUser.name` |
+| Work logs | Only YOUR work logs | `w.personId === currentUser.id \|\| w.personName === currentUser.name` |
+| 1:1 meetings | Only YOUR meetings | `m.personId === currentUser.id \|\| m.managerId === currentUser.id` |
+| Time off | Only YOUR time off requests | `t.personId === currentUser.id` |
+
+| Role | Sees Their Profile? | Sees Others' Profiles? |
+|------|--------------------|-----------------------|
+| Admin | ✅ Own profile | ❌ Cannot view others' profiles here |
+| HR | ✅ Own profile | ❌ Cannot view others' profiles here |
+| TeamLead | ✅ Own profile | ❌ Cannot view others' profiles here |
+| Employee | ✅ Own profile | ❌ Cannot view others' profiles here |
+| Intern | ✅ Own profile | ❌ Cannot view others' profiles here |
+
+**Answer: No, you CANNOT view another person's profile through My Profile. It's strictly self-service.**
+
+---
+
+#### Organization (Org Chart)
+**Data scope: EVERYONE — fully transparent**
+
+| Data Type | What You See | Filter Mechanism |
+|-----------|-------------|------------------|
+| People | ALL people in the system | No filtering — `getAllFromDB(STORES.people)` |
+| Teams | ALL teams | Grouped by `person.team` field |
+| Tree | Full org hierarchy | Built from `person.manager` references |
+
+| Role | Sees Everyone? | Can Search? |
+|------|---------------|-------------|
+| Admin | ✅ Everyone | ✅ |
+| HR | ✅ Everyone | ✅ |
+| TeamLead | ✅ Everyone | ✅ |
+| Employee | ✅ Everyone | ✅ |
+| Intern | ✅ Everyone | ✅ |
+
+**Answer: YES, everyone can see everyone in the Org Chart. It's fully transparent. No role restrictions.**
+
+---
+
+#### Team Sync
+**Data scope: ALL people (TeamLead: team only)**
+
+| Data Type | What You See | Filter Mechanism |
+|-----------|-------------|------------------|
+| People | ALL people (TeamLead: team only) | `filterByTeam(peopleRaw)` |
+| Sync data | Per-person sync items matched by name | Cross-referenced against people list |
+
+| Role | Data Scope |
+|------|-----------|
+| Admin | All teams, all people |
+| HR | All teams, all people |
+| TeamLead | Own team only (via `filterByTeam`) |
+| Employee | All teams, all people |
+| Intern | All teams, all people |
+
+**Answer: Employee and intern can see ALL teams' sync data. Only TeamLead is scoped to their team.**
+
+---
+
+#### Team Work (Daily Work)
+**Data scope: ALL work logs (TeamLead: team only)**
+
+| Data Type | What You See | Filter Mechanism |
+|-----------|-------------|------------------|
+| Work logs | ALL today's work logs (TeamLead: team only) | `filterByTeam(workLogs)` then filtered to today |
+
+| Role | Data Scope |
+|------|-----------|
+| Admin | All work logs, all people |
+| HR | All work logs, all people |
+| TeamLead | Own team's work logs only |
+| Employee | All work logs, all people |
+| Intern | All work logs, all people |
+
+**Answer: Employee/intern can see what EVERYONE is working on today. No privacy filtering.**
+
+---
+
+#### 1:1 Meetings
+**Data scope: ROLE-DEPENDENT — most sophisticated filtering**
+
+| Role | What They See | Filter Mechanism |
+|------|--------------|------------------|
+| Admin | ALL meetings across all teams | `['admin','HR','TeamLead'].includes(role) ? allUpcoming : myUpcoming` |
+| HR | ALL meetings across all teams | Same role check |
+| TeamLead | ALL meetings (own team via `filterByTeam`) | `filterByTeam` + role check |
+| Employee | Only THEIR OWN meetings | `m.personId === currentUser.id \|\| m.managerId === currentUser.id` |
+| Intern | Only THEIR OWN meetings | Same user-level filter |
+
+| Role | Sees Others' 1:1s? |
+|------|-------------------|
+| Admin | ✅ Yes, all |
+| HR | ✅ Yes, all |
+| TeamLead | ✅ Yes, all (own team) |
+| Employee | ❌ No, only own |
+| Intern | ❌ No, only own |
+
+**Answer: Admin/HR/TeamLead CAN see other people's 1:1 meetings. Employee/intern can ONLY see their own.**
+
+---
+
+#### Projects
+**Data scope: ALL projects (TeamLead: team only)**
+
+| Data Type | What You See | Filter Mechanism |
+|-----------|-------------|------------------|
+| Projects | ALL projects (TeamLead: team only) | `filterByTeam(projects)` |
+
+| Role | Sees All Projects? | Can Create? | Can Edit? | Can Delete? |
+|------|-------------------|-------------|-----------|-------------|
+| Admin | ✅ All | ✅ | ✅ | ✅ |
+| HR | ✅ All | ✅ | ✅ | ✅ |
+| TeamLead | ✅ All (own team only) | ✅ | ✅ | ✅ |
+| Employee | 👁️ All (read only) | ❌ | ❌ | ❌ |
+| Intern | ❌ No access | ❌ | ❌ | ❌ |
+
+**Answer: Employee CAN view all projects but cannot edit. TeamLead scoped to their team only.**
+
+---
+
+#### Action Items
+**Data scope: ALL items (TeamLead: team only)**
+
+| Data Type | What You See | Filter Mechanism |
+|-----------|-------------|------------------|
+| Action items | ALL items (TeamLead: team only) | `filterByTeam(allActions)` |
+
+| Role | Sees All? | Can Create? | Can Edit? | Can Delete? |
+|------|----------|-------------|-----------|-------------|
+| Admin | ✅ All | ✅ | ✅ | ✅ |
+| HR | ✅ All | ✅ | ✅ | ✅ |
+| TeamLead | ✅ All (own team) | ✅ | ✅ | ✅ |
+| Employee | ✅ All | ✅ | ✅ | ❌ |
+| Intern | 👁️ Read only | ❌ | ❌ | ❌ |
+
+**Answer: Employee CAN see all action items and create/edit their own. Cannot delete. Intern is read-only.**
+
+---
+
+#### Hiring Pipeline
+**Data scope: ALL candidates (TeamLead: team only)**
+
+| Data Type | What You See | Filter Mechanism |
+|-----------|-------------|------------------|
+| Candidates | ALL candidates (TeamLead: team only) | `filterByTeam(hiringPipeline)` |
+
+| Role | Access |
+|------|--------|
+| Admin | ✅ Full CRUD |
+| HR | ✅ Create, Read, Update |
+| TeamLead | ✅ Create, Read, Update (own team) |
+| Employee | ❌ No access |
+| Intern | ❌ No access |
+
+---
+
+#### Onboarding
+**Data scope: ALL new hires (TeamLead: team only)**
+
+| Role | Access |
+|------|--------|
+| Admin | ✅ Full CRUD |
+| HR | ✅ Create, Read, Update |
+| TeamLead | ✅ Create, Read, Update (own team) |
+| Employee | ❌ No access |
+| Intern | ❌ No access |
+
+---
+
+#### Internships
+**Data scope: ALL interns (TeamLead: team only)**
+
+| Role | Access |
+|------|--------|
+| Admin | ✅ Full CRUD |
+| HR | ✅ Full CRUD |
+| TeamLead | ✅ Full CRUD (own team) |
+| Employee | ❌ No access |
+| Intern | ❌ No access |
+
+---
+
+#### Team Pulse
+**Data scope: ALL pulse data (TeamLead: team only)**
+
+| Role | Access |
+|------|--------|
+| Admin | ✅ Full CRUD |
+| HR | ✅ Full CRUD |
+| TeamLead | ✅ Full CRUD (own team) |
+| Employee | ❌ No access |
+| Intern | ❌ No access |
+
+---
+
+#### Exits & Alumni
+**Data scope: ALL exits (TeamLead: team only)**
+
+| Role | Access |
+|------|--------|
+| Admin | ✅ Full CRUD |
+| HR | 👁️ Read only |
+| TeamLead | 👁️ Read only (own team) |
+| Employee | ❌ No access |
+| Intern | ❌ No access |
+
+---
+
+#### Teams
+**Data scope: ALL teams (TeamLead: team only)**
+
+| Role | Sees All Teams? | Can Create? | Can Edit? | Can Delete? |
+|------|----------------|-------------|-----------|-------------|
+| Admin | ✅ All | ✅ | ✅ | ✅ |
+| HR | ✅ All | ✅ | ✅ | ✅ |
+| TeamLead | ✅ All (own team only) | ✅ | ✅ | ❌ |
+| Employee | 👁️ Read only | ❌ | ❌ | ❌ |
+| Intern | 👁️ Read only | ❌ | ❌ | ❌ |
+
+Note: TeamArena loads `people`, `workLogs`, and `projects` **unfiltered** into memory. The UI scopes views to the selected team, but raw data is accessible in memory.
+
+---
+
+#### Team Wellness
+**Data scope: MIXED — partially filtered**
+
+| Data Type | What You See | Filter Mechanism |
+|-----------|-------------|------------------|
+| People | Team-scoped (TeamLead) / All (others) | `filterByTeam(peopleDataRaw)` ✅ |
+| Work logs | ALL (no filter) | `getAllFromDB(STORES.workLogs)` ❌ |
+| Check-ins | ALL (no filter) | `getAllFromDB(STORES.checkIns)` ❌ |
+| 1:1 meetings | ALL (no filter) | `getAllFromDB(STORES.oneOnOnes)` ❌ |
+
+**Data leak:** TeamLead sees team-scoped people but ALL work logs, check-ins, and meetings. This means wellness signals (mood, energy, blockers) from other teams are visible.
+
+| Role | Data Scope |
+|------|-----------|
+| Admin | All people, all wellness data |
+| HR | All people, all wellness data |
+| TeamLead | Team people + ALL wellness data (partial filter) |
+| Employee | All people, all wellness data |
+| Intern | ❌ No access |
+
+---
+
+#### Metrics
+**Data scope: FULLY ORG-WIDE — no filtering**
+
+| Data Type | What You See | Filter Mechanism |
+|-----------|-------------|------------------|
+| All metrics | Global aggregates across ALL data | No filtering whatsoever |
+
+| Role | Access |
+|------|--------|
+| Admin | ✅ Full view |
+| HR | ✅ Full view |
+| TeamLead | ✅ Full view |
+| Employee | 👁️ Full view (read only) |
+| Intern | ❌ No access |
+
+**Answer: Metrics are ALWAYS org-wide. No team or user scoping.**
+
+---
+
+#### Reports
+**Data scope: FULLY ORG-WIDE — no filtering**
+
+| Data Type | What You See | Filter Mechanism |
+|-----------|-------------|------------------|
+| All reports | Global data across ALL stores | No filtering whatsoever |
+
+| Role | Access |
+|------|--------|
+| Admin | ✅ Read + Export |
+| HR | ✅ Read + Export |
+| TeamLead | ✅ Read + Export |
+| Employee | ❌ No access |
+| Intern | ❌ No access |
+
+**Answer: Reports are ALWAYS org-wide. No team or user scoping.**
+
+---
+
+### Quick Reference — Can I See Others' Data?
+
+| Question | Answer |
 |----------|--------|
-| `N` | Create new event |
-| `D` | Switch to Day view |
-| `W` | Switch to Week view |
-| `M` | Switch to Month view |
-| `T` | Jump to today |
-| `/` | Focus search |
-
-#### 🌓 **User Preferences**
-- Light/Dark mode toggle
-- Automatic system theme detection
-- Persistent preference storage
-
-#### 💾 **Data Management**
-- Browser localStorage for fast offline access
-- Export events as JSON
-- Import events from JSON file
-- Automatic data persistence
-
-#### 📱 **Responsive Design**
-- Full desktop experience
-- Mobile-optimized layouts
-- Touch-friendly controls
-- Works on all modern browsers
+| Can admin view an employee's personal dashboard? | ❌ No — My Dashboard is own-data-only |
+| Can admin view an employee's profile? | ❌ No — My Profile is own-data-only |
+| Can admin see the org chart? | ✅ Yes — everyone sees everyone |
+| Can admin see what an employee is working on today? | ✅ Yes — Team Work shows all |
+| Can admin see an employee's 1:1 meetings? | ✅ Yes — admin sees all 1:1s |
+| Can HR see an employee's profile? | ❌ No — My Profile is own-data-only |
+| Can HR see all candidates in hiring pipeline? | ✅ Yes — HR sees all |
+| Can TeamLead see other teams' data? | ❌ No — `filterByTeam()` scopes to own team |
+| Can employee see other employees' tasks? | ✅ Yes — Team Work shows all |
+| Can employee see other employees' 1:1s? | ❌ No — employee only sees own 1:1s |
+| Can employee see all projects? | 👁️ Yes, read only |
+| Can intern see anything beyond their own data? | ✅ Yes — Org Chart, Team Sync, Team Work are transparent |
+| Are metrics org-wide? | ✅ Yes — always global |
+| Are reports org-wide? | ✅ Yes — always global |
 
 ---
 
-## 📂 Project Structure
+### Known Data Visibility Issues
 
-```
-HROS/
-├── src/
-│   ├── components/          (9 React components)
-│   │   ├── HROSDashboard.jsx      (Main app container)
-│   │   ├── LoginPage.jsx          (Authentication)
-│   │   ├── DayView.jsx            (Day calendar view)
-│   │   ├── WeekView.jsx           (Week calendar view)
-│   │   ├── MonthView.jsx          (Month calendar view)
-│   │   ├── EventModal.jsx         (Event creation/edit)
-│   │   ├── Header.jsx             (Top navigation)
-│   │   ├── Sidebar.jsx            (Left navigation)
-│   │   └── [Other boards]         (Specialized views)
-│   │
-│   ├── hooks/              (4 custom React hooks)
-│   │   ├── useEvents.js           (Event state management)
-│   │   ├── useDarkMode.js         (Theme management)
-│   │   ├── useKeyboardShortcuts.js (Keyboard handling)
-│   │   └── useNotifications.js    (Browser notifications)
-│   │
-│   ├── utils/              (5+ utility modules)
-│   │   ├── storage.js             (localStorage API)
-│   │   ├── dateUtils.js           (Date/time helpers)
-│   │   ├── eventHelpers.js        (Event logic)
-│   │   ├── constants.js           (App constants)
-│   │   ├── sampleData.js          (Demo data)
-│   │   └── [More utilities]
-│   │
-│   ├── context/            (React Context)
-│   │   └── AuthContext.jsx        (Auth state management)
-│   │
-│   ├── styles/             (Tailwind CSS)
-│   │   └── index.css
-│   │
-│   ├── App.jsx            (Root component)
-│   └── main.jsx           (Entry point)
-│
-├── public/                 (Static assets)
-├── package.json           (Dependencies & scripts)
-├── vite.config.js         (Vite bundler config)
-├── tailwind.config.js     (Tailwind CSS config)
-├── postcss.config.js      (PostCSS plugins)
-└── README.md             (This file)
-```
+| Issue | Board | Severity | Description |
+|-------|-------|----------|-------------|
+| My Dashboard fallback | MyDashboard | Low | If no person record found, falls back to `people.slice(0, 6)` — shows 6 random people |
+| Wellness data leak | WellnessBoard | Medium | `workLogs`, `checkIns`, `oneOnOnes` loaded without `filterByTeam()` — TeamLead sees cross-team wellness signals |
+| TeamArena raw data | TeamArena | Low | `people`, `workLogs`, `projects` loaded unfiltered into memory — UI scopes to selected team but raw data is accessible |
+| OrgChart fully transparent | OrgChart | Info | Everyone sees everyone — intentional for org transparency but no privacy option |
 
 ---
 
-## 🛠️ Development
+## Key Features
 
-### Installation
+### Admin Impersonation ("View As")
+- Only the admin role can use this feature
+- Header shows "View As" button → dropdown of all roles
+- Switches sidebar boards and permissions to that role
+- Badge shows "Viewing as [role]" in yellow
+- "Back to Admin" button reverts
 
-```bash
-# Install dependencies
-npm install
-```
+### Team-Based Filtering (`filterByTeam`)
+- TeamLead users see only their assigned team's data
+- `filterByTeam()` is called in 12 board components
+- Filters records where `team === teamId` or `teamId === teamId`
+- Admin and HR see all data (no filtering)
 
-### Development Server
-
-```bash
-# Start dev server with hot reload
-npm run dev
-```
-
-Server runs at `http://localhost:5173`
-
-### Production Build
-
-```bash
-# Create optimized production build
-npm run build
-```
-
-Output is in the `dist/` folder.
-
-### Preview Build
-
-```bash
-# Test production build locally
-npm run preview
-```
-
----
-
-## 🚀 Deployment
-
-### Deploy to GitHub Pages
-
-1. Update `vite.config.js` with your repository name:
-```javascript
-export default defineConfig({
-  base: '/your-repo-name/',
-  // ... rest of config
-})
-```
-
-2. Deploy:
-```bash
-npm run deploy
-```
-
-### Deploy to Other Platforms
-
-The `dist/` folder can be deployed to:
-- Vercel
-- Netlify
-- GitHub Pages
-- Any static hosting service
-
----
-
-## 📚 Documentation
-
-This project includes comprehensive documentation:
-
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System design and architecture overview
-- **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)** - Development guidelines and code structure
-- **[USER_GUIDE_DETAILED.md](USER_GUIDE_DETAILED.md)** - Complete user documentation
-- **[AUTHENTICATION_GUIDE.md](AUTHENTICATION_GUIDE.md)** - Authentication system details
-- **[HROS_SYSTEM_GUIDE.md](HROS_SYSTEM_GUIDE.md)** - Full system reference
-- **[COMPONENTS.md](COMPONENTS.md)** - Component documentation
-- **[DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)** - Complete documentation index
-
----
-
-## 🔐 Authentication
-
-HROS supports multiple authentication methods:
-
-- **Password Authentication** - Traditional email/password login
-- **IDP Authentication** - Google, Microsoft, Okta, Auth0
-- **Role-Based Access** - Admin, Employee, Manager roles
-
-See [AUTHENTICATION_GUIDE.md](AUTHENTICATION_GUIDE.md) for setup details.
-
----
-
-## 💻 Technology Stack
-
-- **Frontend Framework**: React 18
-- **Build Tool**: Vite 4
-- **Styling**: Tailwind CSS 3
-- **Icons**: Lucide React
-- **Data Storage**: Browser localStorage
-- **Utilities**: clsx for conditional classes
-
----
-
-## 📋 Dependencies
-
-```json
-{
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "lucide-react": "^0.263.1",
-    "clsx": "^2.0.0"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "^4.0.0",
-    "vite": "^4.3.0",
-    "tailwindcss": "^3.3.0",
-    "postcss": "^8.4.24",
-    "autoprefixer": "^10.4.14",
-    "gh-pages": "^5.0.0"
-  }
-}
-```
-
----
-
-## 📝 License
-
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
-
----
-
-## 💡 Tips & Tricks
-
-### Keyboard Power User
-Press `/` to search, then use arrow keys to navigate results quickly.
+### ProtectedRoute
+- Wraps every board in HROSDashboard
+- Checks `hasPermission(boardId, 'read')` before rendering
+- Shows "Access Denied" with lock icon if unauthorized
+- Prevents direct URL access to restricted boards
 
 ### Dark Mode
-The app automatically detects your system theme preference but can be toggled manually.
+- CSS override system in `src/styles/index.css`
+- Covers all boards with `!important` dark variants
+- Toggle in header (sun/moon icon)
+- Persists across sessions
 
-### Data Backup
-Regularly export your events to backup. Use the export feature in settings.
-
-### Sample Data
-On first load, sample events are provided to demonstrate features.
-
----
-
-## 🙋 Support
-
-For detailed information on any feature:
-1. Check [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) for the full doc index
-2. Review the [USER_GUIDE_DETAILED.md](USER_GUIDE_DETAILED.md) for user features
-3. See [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) for development help
+### Cloud Sync
+- 3-second heartbeat polling (pauses when tab hidden)
+- Bidirectional sync with conflict detection
+- Pending updates queue in localStorage for retry
+- Offline fallback with seeded admin account
 
 ---
 
-**Last Updated**: April 2026  
-**Version**: 1.0.0  
-**Status**: Production Ready ✅
+## Default Credentials
 
-Or manually:
-```bash
-npm run build
-npx gh-pages -d dist
+| Product | Email | Password | Role |
+|---------|-------|----------|------|
+| HROS | `admin@hros.local` | `admin123` | admin (offline fallback) |
+| HROS | `himanshuyadav4596@gmail.com` | `hivemaster` | admin (from Google Sheet) |
+| HiveDesk | `admin@hivedesk.local` | `admin123` | admin (offline fallback) |
+
+---
+
+## Google Apps Script (Code.gs v9.1)
+
+### Auto-Sheet Creation
+The GAS code auto-creates all 23 required sheets with headers on first request. No manual sheet creation needed.
+
+### Required Sheets
+People, Teams, Users, Config, HiringPipeline, Internships, Onboarding, Exits, WorkLogs, Projects, Tasks, TaskComments, CheckIns, OneOnOnes, Decisions, ActionItems, Skills, TimeOff, CompensationHistory, TeamDynamics, RedFlags, Events, Logs
+
+### API Actions
+- `get` — Get single record by ID
+- `filter` — Get sheet data with filtering and pagination
+- `metrics` — Get dashboard metrics
+- `search` — Search across all sheets
+- `insert` — Insert new record
+- `update` — Update existing record
+- `upsert` — Bulk insert or update
+- `delete` — Delete record by ID
+- `notify` — Send email notification
+
+### Deployed URL
 ```
+https://script.google.com/macros/s/AKfycbzQeWX6_1kYMYGIZeoKqitykSNBuOjWAsSa6n8c6ghWkWHZ_nIYQKXKDuo2mUrxfOacrw/exec
+```
+
+---
 
 ## Project Structure
 
 ```
 src/
-├── components/        # React components
-│   ├── EventModal.jsx      # Event creation/editing modal
-│   ├── EventCard.jsx       # Event display card
-│   ├── MonthView.jsx       # Month calendar view
-│   ├── WeekView.jsx        # Week calendar view
-│   ├── DayView.jsx         # Day calendar view
-│   ├── TodaySchedule.jsx   # Today's schedule panel
-│   ├── MiniCalendar.jsx    # Sidebar mini calendar
-│   ├── Sidebar.jsx         # Main sidebar
-│   └── Header.jsx          # Top navigation
-├── hooks/            # Custom React hooks
-│   ├── useEvents.js        # Event management
-│   ├── useDarkMode.js      # Dark mode toggle
-│   ├── useKeyboardShortcuts.js  # Keyboard shortcuts
-│   └── useNotifications.js # Browser notifications
-├── utils/            # Utility functions
-│   ├── storage.js    # localStorage operations
-│   ├── dateUtils.js  # Date manipulation
-│   └── constants.js  # App constants
-├── styles/           # CSS styles
-│   └── index.css     # Global styles
-├── App.jsx           # Main app component
-└── main.jsx          # Entry point
+├── components/
+│   ├── HROSDashboard.jsx      # Main dashboard with sidebar + board routing
+│   ├── ProtectedRoute.jsx     # Permission-based route guard
+│   ├── KanbanBoard.jsx        # Shared kanban component (all boards)
+│   ├── TeamArena.jsx          # Team management view
+│   ├── TeamForm.jsx           # Create/edit team modal
+│   ├── MyDashboard.jsx        # Personal command center
+│   ├── EmployeeSelfService.jsx # My Profile
+│   ├── OrgChart.jsx           # Organization chart
+│   ├── TeamSyncBoard.jsx      # Team sync updates
+│   ├── DailyWorkBoard.jsx     # Task kanban
+│   ├── OneOnOneBoard.jsx      # 1:1 meeting scheduler
+│   ├── ProjectHealthBoard.jsx # Project tracking
+│   ├── ActionItemsBoard.jsx   # Decision tracking
+│   ├── HiringPipelineBoard.jsx # Hiring pipeline
+│   ├── OnboardingBoard.jsx    # New hire onboarding
+│   ├── InternshipBoard.jsx    # Intern management
+│   ├── TeamPulseBoard.jsx     # Sentiment tracking
+│   ├── ExitsBoard.jsx         # Exit management
+│   ├── WellnessBoard.jsx      # Team wellness
+│   ├── MetricsDashboard.jsx   # KPI dashboard
+│   ├── ReportsBoard.jsx       # Analytics & export
+│   ├── SlackCommandConsole.jsx # Command interface
+│   ├── AdminSettings.jsx      # User management & config
+│   ├── AdminLogViewer.jsx     # Audit logs
+│   ├── NotificationPanel.jsx  # Notification center
+│   ├── GlobalSearch.jsx       # Cross-board search
+│   └── CommandPalette.jsx     # Quick command access
+├── context/
+│   └── AuthContext.jsx         # Auth, RBAC, cloud sync, impersonation
+├── services/
+│   ├── GoogleSheetsService.js  # GAS cloud bridge
+│   └── LoggingService.js       # Audit logging
+├── utils/
+│   ├── indexedDB.js            # In-memory cache + CRUD operations
+│   └── sampleData.js           # ID generation
+├── hivedesk/
+│   ├── HiveDeskDashboard.jsx   # Separate product (not HROS)
+│   └── HiveDeskStorage.js      # HiveDesk cloud sync
+└── styles/
+    └── index.css               # Dark mode + responsive overrides
 ```
-
-## Technology Stack
-
-- **React** - UI library with hooks
-- **Tailwind CSS** - Utility-first CSS framework
-- **Vite** - Lightning-fast build tool
-- **LocalStorage API** - Client-side data persistence
-- **Lucide React** - Beautiful, consistent icons
-
-## Usage Guide
-
-### Creating an Event
-1. Click the "New Event (N)" button or press `N`
-2. Fill in the event details
-3. Select a category and priority
-4. Click "Create Event"
-
-### Editing an Event
-1. Click the "Edit" button on any event card
-2. Modify the details
-3. Click "Update Event"
-
-### Deleting an Event
-1. Hover over an event card
-2. Click the "Delete" button
-
-### Switching Views
-- Use the buttons in the top navigation: Day (D), Week (W), Month (M)
-- Or use keyboard shortcuts
-
-### Exporting Events
-1. Click the "Export" button in the sidebar
-2. Your events will be saved as a JSON file
-
-### Importing Events
-1. Click the "Import" button in the sidebar
-2. Select a previously exported JSON file
-3. Imported events will be added to your calendar
-
-### Setting Reminders
-- Events automatically trigger browser notifications 15 minutes before the scheduled time
-- Allow notifications when prompted by the browser
-
-## Data Format
-
-Events are stored with the following structure:
-```javascript
-{
-  id: "unique-id",
-  title: "Event Title",
-  description: "Event description",
-  date: "2024-03-27",
-  startTime: "10:00",
-  endTime: "11:00",
-  category: "Meeting", // Meeting, Call, Task, Personal
-  priority: "medium",  // low, medium, high
-  isCompleted: false,
-  createdAt: "2024-03-27T10:00:00Z"
-}
-```
-
-## Local Storage
-
-The app stores data in `localStorage` under the key `hros_events`. The data is automatically persisted whenever you add, edit, or delete an event.
-
-## Browser Support
-
-- Chrome/Edge 90+
-- Firefox 88+
-- Safari 14+
-- Mobile browsers (iOS Safari, Chrome Mobile)
-
-## Performance
-
-- ⚡ Fast load times with Vite
-- 📦 Optimized bundle size
-- 🎯 Efficient re-renders with React hooks
-- 💾 Lazy loading where applicable
-
-## Tips & Tricks
-
-1. **Color Code Your Events** - Use categories to visually organize your calendar
-2. **Use Priority Levels** - Mark important tasks as High priority to stand out
-3. **Search Regularly** - Use `/` to quickly find events
-4. **Export Backup** - Periodically export your events as a backup
-5. **Mobile First** - The app works great on mobile for quick event checks
-
-## Keyboard Shortcuts Quick Reference
-
-| Key | Action |
-|-----|--------|
-| N | New Event |
-| D | Day View |
-| W | Week View |
-| M | Month View |
-| T | Today |
-| / | Search |
-
-## Troubleshooting
-
-### Events not saving?
-- Check browser's localStorage is enabled
-- Check you have storage space available
-- Try clearing browser cache and reload
-
-### Notifications not working?
-- Allow notifications when prompted by browser
-- Check browser notification settings
-- Ensure JavaScript is enabled
-
-### Dark mode not working?
-- Clear localStorage: `localStorage.clear()`
-- Refresh the page
-
-## Future Enhancements
-
-Possible features for future versions:
-- Recurring events
-- Event reminders with custom intervals
-- Collaboration features
-- Sync across devices
-- Voice input for events
-- Advanced scheduling (time zones, calendars)
-- Analytics dashboard
-
-## Contributing
-
-Contributions are welcome! Feel free to submit issues and enhancement requests.
-
-## License
-
-MIT License - feel free to use this project for personal or commercial purposes.
-
-## Support
-
-For issues, questions, or suggestions, please create an issue on GitHub.
 
 ---
 
-Made with ❤️ for better life management
+## Build & Development
+
+```bash
+# Install dependencies
+npm install
+
+# Development server
+npm run dev
+
+# Production build
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+---
+
+## Version History
+
+| Version | Changes |
+|---------|---------|
+| v9.1 | Added Teams sheet, auto-sheet creation, `ensureAllSheets()` |
+| v9.0 | Complete GAS rewrite with flat array responses |
+| v5.0 | Role system: admin, HR, TeamLead, employee, intern |
+| v4.0 | Team Arena with org chart, tasks, and member views |
+| v3.0 | Dark mode, responsive design, per-action RBAC |

@@ -1,12 +1,12 @@
 import React, { useState } from 'react'
-import { Lock, LogIn, AlertCircle, Shield } from 'lucide-react'
+import { Lock, LogIn, AlertCircle, Shield, LayoutGrid } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
-export default function LoginPage() {
+export default function LoginPage({ onSwitchToHiveDesk }) {
   const { login, loginWithIDP } = useAuth()
   const [loginMode, setLoginMode] = useState('password') // 'password' or 'idp'
-  const [email, setEmail] = useState('admin@hros.local')
-  const [password, setPassword] = useState('admin123')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [idpEmail, setIdpEmail] = useState('')
   const [selectedIDP, setSelectedIDP] = useState('google')
   const [error, setError] = useState(null)
@@ -53,9 +53,23 @@ export default function LoginPage() {
             <div className="flex items-center justify-center mb-2">
               <Lock className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-white text-center">YuvaHive HROS</h1>
-            <p className="text-blue-100 text-center mt-2">Employee Management System</p>
+            <h1 className="text-3xl font-bold text-white text-center">YuvaHive</h1>
+            <p className="text-blue-100 text-center mt-2">HR Management System</p>
           </div>
+
+          {/* HiveDesk Quick Entry */}
+          {onSwitchToHiveDesk && (
+            <button
+              onClick={onSwitchToHiveDesk}
+              className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-gray-900 hover:bg-gray-800 text-white transition-colors border-b border-gray-700"
+            >
+              <LayoutGrid className="w-5 h-5 text-indigo-400" />
+              <div className="text-left">
+                <p className="text-sm font-semibold">Open HiveDesk</p>
+                <p className="text-[10px] text-gray-400">Task pipeline & team management</p>
+              </div>
+            </button>
+          )}
 
           {/* Tabs */}
           <div className="flex border-b border-gray-200">
@@ -110,11 +124,10 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-                    placeholder="your@email.com"
+                    placeholder="your@company.com"
                     required
                     disabled={loading}
                   />
-                  <p className="text-xs text-gray-500 mt-1">Demo: admin@hros.local</p>
                 </div>
 
                 {/* Password Input */}
@@ -141,7 +154,7 @@ export default function LoginPage() {
                       {showPassword ? 'Hide' : 'Show'}
                     </button>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">Demo: admin123</p>
+                   <p className="text-xs text-gray-500 mt-1">Contact your admin if you forgot your password</p>
                 </div>
               </>
             ) : (
@@ -244,10 +257,7 @@ export default function LoginPage() {
           <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
             <div className="space-y-2 text-xs text-gray-600">
               <p>
-                <strong>Demo Admin:</strong> admin@hros.local / admin123
-              </p>
-              <p>
-                <em>This is a frontend-only demo. Data persists in browser storage.</em>
+                <em>Cloud-native HR system. Contact your administrator for account access.</em>
               </p>
             </div>
           </div>

@@ -4,10 +4,14 @@ import KanbanBoard from './KanbanBoard'
 import HiringForm from './HiringForm'
 import { getAllFromDB, updateInDB, deleteFromDB } from '../utils/indexedDB'
 import { STORES } from '../utils/indexedDB'
-import { AuthContext } from '../context/AuthContext'
+import { AuthContext, useCloudPulse } from '../context/AuthContext'
 
 export default function HiringPipelineBoard() {
-  const { currentUser, cloudStatus, lastPulse } = useContext(AuthContext)
+  const { currentUser, cloudStatus, hasPermission, filterByTeam } = useContext(AuthContext)
+  const lastPulse = useCloudPulse()
+  const canCreate = hasPermission('hiring', 'create')
+  const canUpdate = hasPermission('hiring', 'update')
+  const canDelete = hasPermission('hiring', 'delete')
   const [hiringCards, setHiringCards] = useState({})
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
@@ -29,6 +33,7 @@ export default function HiringPipelineBoard() {
   const loadHiringData = async () => {
     try {
       const hiringPipeline = await getAllFromDB(STORES.hiringPipeline)
+      const filtered = filterByTeam(hiringPipeline)
       const grouped = {
         applicant: { cards: [] },
         screening: { cards: [] },
@@ -37,7 +42,7 @@ export default function HiringPipelineBoard() {
         hired: { cards: [] }
       }
 
-      hiringPipeline.forEach((hire) => {
+      filtered.forEach((hire) => {
         const card = {
           id: hire.id,
           title: hire.name,
@@ -68,8 +73,8 @@ export default function HiringPipelineBoard() {
 
   // Handle card drag/drop to change stage
   const handleDragEnd = async ({ card, targetColumn }) => {
-    if (currentUser?.role !== 'admin') {
-      alert('Only administrators can move candidates')
+    if (!canUpdate) {
+      alert('You don\'t have permission to move candidates')
       return
     }
 
@@ -109,8 +114,8 @@ export default function HiringPipelineBoard() {
 
   // Handle card deletion
   const handleCardDelete = async (cardId, stageId) => {
-    if (currentUser?.role !== 'admin') {
-      alert('Only administrators can delete candidate records')
+    if (!canDelete) {
+      alert('You don\'t have permission to delete candidates')
       return
     }
 
@@ -130,8 +135,8 @@ export default function HiringPipelineBoard() {
 
   // Handle add new candidate
   const handleAddCard = (stageId) => {
-    if (currentUser?.role !== 'admin') {
-      alert('Only administrators can add candidates')
+    if (!canCreate) {
+      alert('You don\'t have permission to add candidates')
       return
     }
     setSelectedCandidate(null)
@@ -140,8 +145,8 @@ export default function HiringPipelineBoard() {
 
   // Handle card click for editing
   const handleCardClick = (card) => {
-    if (currentUser?.role !== 'admin') {
-      alert('Only administrators can edit candidates')
+    if (!canUpdate) {
+      alert('You don\'t have permission to edit candidates')
       return
     }
     setSelectedCandidate(card.data)
@@ -151,6 +156,7 @@ export default function HiringPipelineBoard() {
   // Reload hiring data after form save
   const handleFormSave = async () => {
     const hiringPipeline = await getAllFromDB(STORES.hiringPipeline)
+    const filtered = filterByTeam(hiringPipeline)
     const grouped = {
       applicant: { cards: [] },
       screening: { cards: [] },
@@ -159,7 +165,7 @@ export default function HiringPipelineBoard() {
       hired: { cards: [] }
     }
 
-    hiringPipeline.forEach((hire) => {
+    filtered.forEach((hire) => {
       const card = {
         id: hire.id,
         title: hire.name,

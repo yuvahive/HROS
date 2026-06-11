@@ -40,7 +40,7 @@ export const useEvents = () => {
   useEffect(() => {
     // Only push if DB is ready AND we have already attempted to load data (prevents wiping cloud on start)
     if (dbReady) {
-      CloudStorage.update('Events', events);
+      CloudStorage.update('events', events);
     }
   }, [events, dbReady]);
 

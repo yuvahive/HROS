@@ -1,13 +1,13 @@
 // Auto-backup feature - periodically save events to browser's download folder
 import { exportEvents } from './storage'
 
-export const setupAutoBackup = (events, intervalMinutes = 60) => {
+export const setupAutoBackup = (getEvents, intervalMinutes = 60) => {
   // Auto-backup every N minutes
   const intervalMs = intervalMinutes * 60 * 1000
 
   const backupInterval = setInterval(() => {
+    const events = typeof getEvents === 'function' ? getEvents() : getEvents
     if (events && events.length > 0) {
-      console.log(`Auto-backup triggered at ${new Date().toLocaleTimeString()}`)
       exportEvents(events)
     }
   }, intervalMs)
@@ -18,7 +18,6 @@ export const setupAutoBackup = (events, intervalMinutes = 60) => {
 // Manual backup trigger
 export const triggerBackupNow = (events) => {
   if (events && events.length > 0) {
-    console.log('Manual backup triggered')
     exportEvents(events)
     return true
   }

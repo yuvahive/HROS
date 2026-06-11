@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react'
-import { Settings, Users, Key, Plus, Edit2, Trash2, Save, X, AlertCircle, Download, Upload, AlertTriangle, Database } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { Settings, Users, Key, Plus, Edit2, Trash2, Save, X, AlertCircle, Download, Upload, AlertTriangle, Database, FileSpreadsheet } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { addToDB, getAllFromDB, STORES } from '../utils/indexedDB'
+import { generateID } from '../utils/sampleData'
 
 export default function AdminSettings() {
   const { 
@@ -30,16 +32,28 @@ export default function AdminSettings() {
     email: '',
     password: '',
     name: '',
-    role: 'employee'
+    role: 'employee',
+    teamId: ''
   })
 
   // IDP Assignment state
   const [assigningIDP, setAssigningIDP] = useState(null)
   const [selectedIDPForAssignment, setSelectedIDPForAssignment] = useState('password')
 
+  // Bulk Import state
+  const [bulkImportOpen, setBulkImportOpen] = useState(false)
+  const [bulkImporting, setBulkImporting] = useState(false)
+  const [bulkResults, setBulkResults] = useState(null)
+  const fileInputRef = useRef(null)
+  const [teamsList, setTeamsList] = useState([])
+
   useEffect(() => {
     setUserList(users)
   }, [users])
+
+  useEffect(() => {
+    getAllFromDB(STORES.teams).then(data => setTeamsList(data || []))
+  }, [])
 
   if (!currentUser || currentUser.role !== 'admin') {
     return (
@@ -53,7 +67,7 @@ export default function AdminSettings() {
     )
   }
 
-  const handleAddUser = (e) => {
+  const handleAddUser = async (e) => {
     e.preventDefault()
     setError(null)
     setSuccess(null)
@@ -63,10 +77,27 @@ export default function AdminSettings() {
       return
     }
 
-    const result = addUser(newUserForm)
+    const result = await addUser(newUserForm)
     if (result.success) {
+      // Also create Person record for org chart
+      const personData = {
+        id: result.user.id,
+        name: result.user.name,
+        email: result.user.email,
+        role: result.user.role,
+        team: '',
+        status: 'active',
+        seniority: 'mid',
+        manager: '',
+        startDate: new Date().toISOString().split('T')[0],
+        skills: [],
+        lastCheckInDate: new Date().toISOString().split('T')[0],
+        notes: ''
+      }
+      await addToDB(STORES.people, personData)
+
       setSuccess('User created successfully')
-      setNewUserForm({ email: '', password: '', name: '', role: 'employee' })
+      setNewUserForm({ email: '', password: '', name: '', role: 'employee', teamId: '' })
       setShowAddForm(false)
       setUserList([...userList, result.user])
     } else {
@@ -74,7 +105,7 @@ export default function AdminSettings() {
     }
   }
 
-  const handleUpdateUser = (e) => {
+  const handleUpdateUser = async (e) => {
     e.preventDefault()
     setError(null)
     setSuccess(null)
@@ -87,7 +118,7 @@ export default function AdminSettings() {
       updateData.password = updateData.password.trim();
     }
 
-    const result = updateUser(editingUser.id, updateData)
+    const result = await updateUser(editingUser.id, updateData)
     if (result.success) {
       setSuccess('User updated successfully')
       setEditingUser(null)
@@ -97,9 +128,9 @@ export default function AdminSettings() {
     }
   }
 
-  const handleDeleteUser = (userId) => {
+  const handleDeleteUser = async (userId) => {
     if (window.confirm('Are you sure? This action cannot be undone.')) {
-      const result = deleteUser(userId)
+      const result = await deleteUser(userId)
       if (result.success) {
         setSuccess('User deleted successfully')
         setUserList(userList.filter((u) => u.id !== userId))
@@ -109,7 +140,7 @@ export default function AdminSettings() {
     }
   }
 
-  const handleAssignIDP = () => {
+  const handleAssignIDP = async () => {
     if (!assigningIDP) return
     
     setError(null)
@@ -120,7 +151,7 @@ export default function AdminSettings() {
       idpProvider: selectedIDPForAssignment
     }
 
-    const result = updateUser(assigningIDP.id, updatedUser)
+    const result = await updateUser(assigningIDP.id, updatedUser)
     if (result.success) {
       setSuccess(`IDP assignment updated: ${selectedIDPForAssignment === 'password' ? 'Password-based login' : selectedIDPForAssignment}`)
       setUserList(userList.map((u) => (u.id === assigningIDP.id ? updatedUser : u)))
@@ -176,6 +207,102 @@ export default function AdminSettings() {
        window.location.reload();
     }
   };
+
+  // Bulk CSV Import
+  const handleBulkImport = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    setBulkImporting(true)
+    setBulkResults(null)
+
+    try {
+      const text = await file.text()
+      const lines = text.split('\n').filter(line => line.trim())
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
+
+      const results = { success: [], skipped: [], errors: [] }
+
+      for (let i = 1; i < lines.length; i++) {
+        try {
+          const values = lines[i].split(',').map(v => v.trim())
+          const row = {}
+          headers.forEach((h, idx) => { row[h] = values[idx] || '' })
+
+          if (!row.name || !row.email) {
+            results.errors.push({ line: i + 1, name: row.name || 'Unknown', reason: 'Missing name or email' })
+            continue
+          }
+
+          // Check if user already exists
+          if (users.find(u => u.email.toLowerCase() === row.email.toLowerCase())) {
+            results.skipped.push({ line: i + 1, name: row.name, email: row.email, reason: 'Already exists' })
+            continue
+          }
+
+          const password = row.password || 'welcome123'
+          const role = row.role || 'employee'
+          const team = row.team || ''
+          const jobTitle = row.title || row.role || 'Employee'
+          const teamId = row.teamid || row.teamId || ''
+
+          // Create user account
+          const userData = {
+            email: row.email,
+            password: password,
+            name: row.name,
+            role: role,
+            isActive: true,
+            teamId: teamId
+          }
+          const userResult = await addUser(userData)
+
+          if (userResult.success) {
+            // Also create person record for org chart
+            const personData = {
+              id: userResult.user.id,
+              name: row.name,
+              email: row.email,
+              role: jobTitle,
+              team: team,
+              status: 'active',
+              seniority: row.seniority || 'mid',
+              manager: row.manager || '',
+              startDate: row.startdate || new Date().toISOString().split('T')[0],
+              skills: row.skills ? row.skills.split(';').map(s => s.trim()) : [],
+              lastCheckInDate: new Date().toISOString().split('T')[0],
+              notes: ''
+            }
+            await addToDB(STORES.people, personData)
+
+            results.success.push({ line: i + 1, name: row.name, email: row.email, role: role, password: password })
+          } else {
+            results.errors.push({ line: i + 1, name: row.name, reason: userResult.error })
+          }
+        } catch (err) {
+          results.errors.push({ line: i + 1, name: 'Row error', reason: err.message })
+        }
+      }
+
+      setBulkResults(results)
+    } catch (err) {
+      setError('Failed to parse CSV: ' + err.message)
+    } finally {
+      setBulkImporting(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const downloadCSVTemplate = () => {
+    const template = 'name,email,role,team,title,seniority,manager,startdate,teamId,password\nJohn Doe,john@company.com,employee,Engineering,Frontend Engineer,mid,emp-002,2026-01-15,,welcome123\nJane Smith,jane@company.com,TeamLead,Product,Product Manager,senior,emp-001,2025-06-01,product,welcome123'
+    const blob = new Blob([template], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'hros-import-template.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <div className="h-full w-full flex flex-col bg-gray-50 overflow-hidden">
@@ -242,16 +369,98 @@ export default function AdminSettings() {
       <div className="flex-1 overflow-y-auto p-6">
         {activeTab === 'users' && (
           <div className="space-y-6">
+            {/* Add User / Bulk Import */}
+            {!showAddForm && !bulkImportOpen && (
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add New User
+                </button>
+                <button
+                  onClick={() => setBulkImportOpen(true)}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  Bulk Import CSV
+                </button>
+              </div>
+            )}
+
+            {/* Bulk Import Panel */}
+            {bulkImportOpen && !showAddForm && (
+              <div className="bg-white rounded-lg p-6 border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Bulk Import Users from CSV</h3>
+                  <button onClick={() => { setBulkImportOpen(false); setBulkResults(null) }} className="text-gray-400 hover:text-gray-600">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <h4 className="font-medium text-blue-800 mb-2">CSV Format Required</h4>
+                  <p className="text-sm text-blue-700 mb-2">Columns: <code className="bg-blue-100 px-1 rounded">name, email, role, team, title, seniority, manager, startdate, password</code></p>
+                  <p className="text-xs text-blue-600">• name and email are required. All others are optional.<br/>• role options: admin, HR, TeamLead, employee, intern<br/>• TeamLead users need a teamId field<br/>• If password is empty, defaults to "welcome123"<br/>• Users are auto-created in both login system AND org chart</p>
+                  <button onClick={downloadCSVTemplate} className="mt-3 text-sm text-blue-700 font-medium hover:text-blue-900 underline">
+                    📥 Download CSV Template
+                  </button>
+                </div>
+
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                  <FileSpreadsheet className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                  <p className="text-gray-600 mb-3">{bulkImporting ? 'Importing...' : 'Select a CSV file to import'}</p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv"
+                    onChange={handleBulkImport}
+                    disabled={bulkImporting}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                  />
+                </div>
+
+                {/* Results */}
+                {bulkResults && (
+                  <div className="mt-4 space-y-3">
+                    {bulkResults.success.length > 0 && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <p className="font-medium text-green-800">✅ {bulkResults.success.length} users created</p>
+                        <div className="mt-2 max-h-32 overflow-y-auto space-y-1">
+                          {bulkResults.success.map((u, i) => (
+                            <p key={i} className="text-xs text-green-700">{u.name} ({u.email}) — {u.role} — pw: {u.password}</p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {bulkResults.skipped.length > 0 && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <p className="font-medium text-yellow-800">⚠️ {bulkResults.skipped.length} skipped (already exist)</p>
+                        <div className="mt-2 max-h-24 overflow-y-auto space-y-1">
+                          {bulkResults.skipped.map((u, i) => (
+                            <p key={i} className="text-xs text-yellow-700">{u.name} ({u.email}) — {u.reason}</p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {bulkResults.errors.length > 0 && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                        <p className="font-medium text-red-800">❌ {bulkResults.errors.length} errors</p>
+                        <div className="mt-2 max-h-24 overflow-y-auto space-y-1">
+                          {bulkResults.errors.map((e, i) => (
+                            <p key={i} className="text-xs text-red-700">Line {e.line}: {e.name} — {e.reason}</p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Add User Form */}
-            {!showAddForm ? (
-              <button
-                onClick={() => setShowAddForm(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Add New User
-              </button>
-            ) : (
+            {showAddForm && !bulkImportOpen && (
               <div className="bg-white rounded-lg p-6 border border-gray-200">
                 <h3 className="text-lg font-semibold mb-4">Create New User</h3>
                 <form onSubmit={handleAddUser} className="space-y-4">
@@ -294,11 +503,27 @@ export default function AdminSettings() {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
                       >
                         <option value="admin">Admin</option>
-                        <option value="manager">Manager</option>
+                        <option value="HR">HR</option>
+                        <option value="TeamLead">Team Lead</option>
                         <option value="employee">Employee</option>
                         <option value="intern">Intern</option>
                       </select>
                     </div>
+                    {(newUserForm.role === 'TeamLead') && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Assigned Team</label>
+                        <select
+                          value={newUserForm.teamId}
+                          onChange={(e) => setNewUserForm({ ...newUserForm, teamId: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
+                        >
+                          <option value="">Select a team...</option>
+                          {teamsList.map(t => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-3 justify-end">
                     <button
@@ -356,7 +581,8 @@ export default function AdminSettings() {
                               className="px-3 py-2 border border-gray-300 rounded text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
                             >
                               <option value="admin">Admin</option>
-                              <option value="manager">Manager</option>
+                              <option value="HR">HR</option>
+                              <option value="TeamLead">Team Lead</option>
                               <option value="employee">Employee</option>
                               <option value="intern">Intern</option>
                             </select>
@@ -369,6 +595,17 @@ export default function AdminSettings() {
                               <option value="inactive">Inactive</option>
                             </select>
                           </div>
+                          {editingUser.role === 'TeamLead' && (
+                            <div className="mt-3">
+                              <input
+                                type="text"
+                                value={editingUser.teamId || ''}
+                                onChange={(e) => setEditingUser({ ...editingUser, teamId: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded text-gray-900 dark:text-white dark:bg-gray-800 dark:border-gray-600"
+                                placeholder="Assigned Team ID (e.g., engineering, design)"
+                              />
+                            </div>
+                          )}
                           <div className="flex gap-2">
                             <button type="submit" className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">
                               Save

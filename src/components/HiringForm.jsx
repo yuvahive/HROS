@@ -26,7 +26,7 @@ export default function HiringForm({ isOpen, onClose, onSave, initialData = null
     offerEquity: '',
     offerSentDate: '',
     offerStatus: 'pending',
-    resumerLink: '',
+    resumeLink: '',
     notes: ''
   })
 

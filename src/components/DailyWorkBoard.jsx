@@ -3,11 +3,15 @@ import { CheckCircle, AlertCircle, BarChart3 } from 'lucide-react'
 import KanbanBoard from './KanbanBoard'
 import { getAllFromDB, updateInDB, deleteFromDB, addToDB } from '../utils/indexedDB'
 import { STORES } from '../utils/indexedDB'
-import { AuthContext } from '../context/AuthContext'
+import { AuthContext, useCloudPulse } from '../context/AuthContext'
 import { generateID } from '../utils/sampleData'
 
 export default function DailyWorkBoard() {
-  const { cloudStatus, lastPulse, currentUser } = useContext(AuthContext)
+  const { cloudStatus, currentUser, hasPermission, filterByTeam } = useContext(AuthContext)
+  const lastPulse = useCloudPulse()
+  const canCreate = hasPermission('actions', 'create')
+  const canUpdate = hasPermission('actions', 'update')
+  const canDelete = hasPermission('actions', 'delete')
   const [workCards, setWorkCards] = useState({})
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
@@ -28,6 +32,7 @@ export default function DailyWorkBoard() {
   const loadWorkData = async () => {
     try {
       const workLogs = await getAllFromDB(STORES.workLogs)
+      const filtered = filterByTeam(workLogs)
       const today = new Date().toISOString().split('T')[0]
 
       const grouped = {
@@ -37,7 +42,7 @@ export default function DailyWorkBoard() {
         notes: { cards: [] }
       }
 
-      workLogs
+      filtered
         .filter((log) => log.date === today)
         .forEach((log) => {
           const card = {
@@ -71,6 +76,7 @@ export default function DailyWorkBoard() {
   }
 
   const handleDragEnd = async ({ card, targetColumn }) => {
+    if (!canUpdate) { alert('You don\'t have permission to update work logs'); return }
     try {
       const statusMap = {
         today: 'in-progress',
@@ -102,8 +108,8 @@ export default function DailyWorkBoard() {
   }
 
   const handleCardDelete = async (cardId) => {
-    if (currentUser?.role !== 'admin') {
-      alert('Only administrators can delete work logs')
+    if (!canDelete) {
+      alert('You don\'t have permission to delete work logs')
       return
     }
 
@@ -124,6 +130,7 @@ export default function DailyWorkBoard() {
   }
 
   const handleAddCard = (columnId) => {
+    if (!canCreate) { alert('You don\'t have permission to add work logs'); return }
     setSelectedColumnId(columnId)
     setFormOpen(true)
   }
@@ -203,7 +210,20 @@ export default function DailyWorkBoard() {
       <div className="flex-1 overflow-hidden">
         <KanbanBoard
           columns={boardColumns}
-          onCardClick={(card) => console.log('Work log clicked:', card)}
+          onCardClick={async (card) => {
+            const comment = prompt('Add a comment on this task:')
+            if (comment && comment.trim()) {
+              await addToDB(STORES.taskComments, {
+                id: generateID('tcomment'),
+                workLogId: card.id,
+                personId: card.data.personId || currentUser?.id,
+                authorId: currentUser?.id,
+                authorName: currentUser?.name,
+                text: comment.trim(),
+                createdAt: new Date().toISOString()
+              })
+            }
+          }}
           onCardDelete={handleCardDelete}
           onAddCard={handleAddCard}
           onDragEnd={handleDragEnd}

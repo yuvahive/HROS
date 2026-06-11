@@ -85,20 +85,21 @@ export default function SlackCommandConsole() {
 
   // Handle key events
   const handleKeyDown = (e) => {
-    if (e.key === 'EnterPress' || (e.key === 'Enter' && !e.shiftKey)) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSubmitCommand()
+      if (selectedIndex >= 0 && suggestions.length > 0) {
+        setCommand(suggestions[selectedIndex].pattern)
+        setSuggestions([])
+        setSelectedIndex(-1)
+      } else {
+        handleSubmitCommand()
+      }
     } else if (e.key === 'ArrowDown' && suggestions.length > 0) {
       e.preventDefault()
       setSelectedIndex(Math.min(selectedIndex + 1, suggestions.length - 1))
     } else if (e.key === 'ArrowUp' && suggestions.length > 0) {
       e.preventDefault()
       setSelectedIndex(Math.max(selectedIndex - 1, -1))
-    } else if (e.key === 'Enter' && selectedIndex >= 0) {
-      e.preventDefault()
-      setCommand(suggestions[selectedIndex].pattern)
-      setSuggestions([])
-      setSelectedIndex(-1)
     }
   }
 
@@ -319,6 +320,8 @@ ${Object.entries(wellbeingByPerson)
       id: generateID('1o1'),
       personId: person.id,
       personName: person.name,
+      managerId: '',
+      managerName: '',
       scheduledDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       scheduledTime: '10:00',
       duration: 30,

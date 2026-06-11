@@ -38,7 +38,7 @@ export default function ReportsBoard() {
         timeOff
       ] = await Promise.all([
         getAllFromDB(STORES.people),
-        getAllFromDB(STORES.hiring),
+        getAllFromDB(STORES.hiringPipeline),
         getAllFromDB(STORES.onboarding),
         getAllFromDB(STORES.exits),
         getAllFromDB(STORES.projects),
@@ -69,11 +69,11 @@ export default function ReportsBoard() {
 
       // HIRING METRICS
       const totalApplied = hiring.filter((h) =>
-        new Date(h.applicationDate) >= dateFilter.start &&
-        new Date(h.applicationDate) <= dateFilter.end
+        new Date(h.appliedDate) >= dateFilter.start &&
+        new Date(h.appliedDate) <= dateFilter.end
       )
-      const hired = hiring.filter((h) => h.status === 'hire')
-      const rejections = hiring.filter((h) => h.status === 'rejected')
+      const hired = hiring.filter((h) => h.stage === 'hired')
+      const rejections = hiring.filter((h) => h.stage === 'rejected')
 
       data.hiring = {
         totalApplications: totalApplied.length,
@@ -473,11 +473,11 @@ function getDateRange(range) {
 }
 
 function calculateAverageTimeToHire(hiring) {
-  const hired = hiring.filter((h) => h.status === 'hire')
+  const hired = hiring.filter((h) => h.stage === 'hired')
   if (hired.length === 0) return 0
 
   const totalDays = hired.reduce((sum, h) => {
-    const appDate = new Date(h.applicationDate)
+    const appDate = new Date(h.appliedDate)
     const hireDate = new Date(h.hireDate || new Date())
     return sum + Math.ceil((hireDate - appDate) / (1000 * 60 * 60 * 24))
   }, 0)

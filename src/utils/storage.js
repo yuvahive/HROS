@@ -43,7 +43,10 @@ export const exportEvents = (events) => {
   element.download = `hros-events-${new Date().toISOString().split('T')[0]}.json`;
   document.body.appendChild(element);
   element.click();
-  document.body.removeChild(element);
+  setTimeout(() => {
+    URL.revokeObjectURL(element.href);
+    document.body.removeChild(element);
+  }, 100);
 };
 
 // Import events from JSON

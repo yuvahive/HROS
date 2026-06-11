@@ -9,7 +9,7 @@ import WeekView from './components/WeekView';
 import DayView from './components/DayView';
 import TodaySchedule from './components/TodaySchedule';
 import HROSDashboard from './components/HROSDashboard';
-import HiveLabDashboard from './hivelab/HiveLabDashboard';
+import HiveDeskDashboard from '../HiveDesk/src/HiveDeskApp';
 import useEvents from './hooks/useEvents';
 import useDarkMode from './hooks/useDarkMode';
 import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
@@ -20,8 +20,17 @@ import { getPreviousMonth, getNextMonth } from './utils/dateUtils';
 import { initializeSampleData } from './utils/sampleData';
 import './styles/index.css';
 
+// Generate unique ID (module scope to avoid stale closure)
+const generateUUID = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
 function AppContent() {
-  const { currentUser, logout, cloudStatus } = useAuth();
+  const { currentUser, logout, cloudStatus, loading: authLoading } = useAuth();
   const { events, addEvent, updateEvent, deleteEvent, bulkImportEvents } = useEvents();
   const { isDark, toggle: toggleDarkMode } = useDarkMode();
   const { requestPermission, scheduleNotification } = useNotifications();
@@ -36,6 +45,13 @@ function AppContent() {
   const [selectedCategories, setSelectedCategories] = useState(['Meeting', 'Call', 'Task', 'Personal']);
   const [selectedPriorities, setSelectedPriorities] = useState(['low', 'medium', 'high']);
 
+  // Listen for HiveDesk "back to calendar" event
+  useEffect(() => {
+    const handler = () => setAppMode('calendar');
+    window.addEventListener('hivedesk-back', handler);
+    return () => window.removeEventListener('hivedesk-back', handler);
+  }, []);
+
   // Request notification permission on mount
   useEffect(() => {
     requestPermission();
@@ -47,7 +63,7 @@ function AppContent() {
       try {
         await initializeSampleData();
       } catch (error) {
-        console.log('Sample data already exists or error:', error);
+        // Sample data already exists or initialization failed
       }
     };
     initData();
@@ -56,8 +72,7 @@ function AppContent() {
   // Setup auto-backup on mount
   useEffect(() => {
     if (isAutoBackupEnabled() && events.length > 0) {
-      console.log('Auto-backup enabled, scheduling backups...');
-      const backupInterval = setupAutoBackup(events, 60); // Every 60 minutes
+      const backupInterval = setupAutoBackup(() => events, 60); // Every 60 minutes
       return () => {
         if (backupInterval) clearInterval(backupInterval);
       };
@@ -197,19 +212,10 @@ function AppContent() {
     );
   };
 
-  // Generate unique ID
-  const generateUUID = () => {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-  };
-
   return (
     <div className={isDark ? 'dark' : ''}>
       {/* Show loading screen during initial cloud sync */}
-      {useAuth().loading ? (
+      {authLoading ? (
         <div className="h-screen w-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 transition-colors duration-500">
            <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-6 border border-gray-100 dark:border-gray-700">
               <div className="w-16 h-16 border-4 border-blue-500/20 border-t-blue-600 rounded-full animate-spin"></div>
@@ -219,22 +225,19 @@ function AppContent() {
               </div>
            </div>
         </div>
+      ) : appMode === 'hivedesk' ? (
+            <div className="h-screen w-screen">
+              <HiveDeskDashboard />
+            </div>
       ) : !currentUser ? (
-        <LoginPage />
+        <LoginPage onSwitchToHiveDesk={() => setAppMode('hivedesk')} />
       ) : (
         <>
           {appMode === 'hros' ? (
             <div className="h-screen w-screen">
-              <HROSDashboard 
-                currentUser={currentUser} 
-                logout={logout} 
-                onBackToCalendar={() => setAppMode('calendar')}
-              />
-            </div>
-          ) : appMode === 'hivelab' ? (
-            <div className="h-screen w-screen">
-              <HiveLabDashboard 
+              <HROSDashboard
                 currentUser={currentUser}
+                logout={logout}
                 onBackToCalendar={() => setAppMode('calendar')}
                 isDark={isDark}
                 onToggleDarkMode={toggleDarkMode}
@@ -273,7 +276,6 @@ function AppContent() {
                   onViewChange={handleViewChange}
                   isDark={isDark}
                   onSwitchToHROS={() => setAppMode('hros')}
-                  onSwitchToHiveLab={() => setAppMode('hivelab')}
                   currentUser={currentUser}
                   onLogout={logout}
                 />

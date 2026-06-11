@@ -26,11 +26,11 @@ export const AdminLogViewer = () => {
 
   const filteredLogs = logs.filter(log => {
     const matchesSearch = 
-      log.details.toLowerCase().includes(filter.toLowerCase()) ||
-      log.userName.toLowerCase().includes(filter.toLowerCase()) ||
-      log.resource.toLowerCase().includes(filter.toLowerCase());
+      (log.details || '').toLowerCase().includes(filter.toLowerCase()) ||
+      (log.userName || '').toLowerCase().includes(filter.toLowerCase()) ||
+      (log.resource || '').toLowerCase().includes(filter.toLowerCase());
     
-    const matchesRole = roleFilter === 'all' || log.userRole.toLowerCase() === roleFilter.toLowerCase();
+    const matchesRole = roleFilter === 'all' || (log.userRole || '').toLowerCase() === roleFilter.toLowerCase();
     
     return matchesSearch && matchesRole;
   });
@@ -124,7 +124,7 @@ export const AdminLogViewer = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold text-xs">
-                          {log.userName[0]}
+                          {(log.userName || '?')[0]}
                         </div>
                         <div>
                           <p className="text-sm font-bold text-gray-900 dark:text-white leading-none mb-1">

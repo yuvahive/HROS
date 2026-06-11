@@ -6,7 +6,10 @@ import { generateID } from '../utils/sampleData'
 import { AuthContext } from '../context/AuthContext'
 
 export default function ActionItemsBoard() {
-  const { currentUser } = useContext(AuthContext)
+  const { currentUser, hasPermission, filterByTeam } = useContext(AuthContext)
+  const canCreate = hasPermission('actions', 'create')
+  const canUpdate = hasPermission('actions', 'update')
+  const canDelete = hasPermission('actions', 'delete')
   const [actionCards, setActionCards] = useState({})
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
@@ -28,6 +31,7 @@ export default function ActionItemsBoard() {
   const loadActionData = async () => {
     try {
       const allActions = (await getAllFromDB(STORES.actionItems)) || []
+      const filtered = filterByTeam(allActions)
       const grouped = {
         new: { cards: [] },
         assigned: { cards: [] },
@@ -36,7 +40,7 @@ export default function ActionItemsBoard() {
         completed: { cards: [] }
       }
 
-      allActions.forEach((action) => {
+      filtered.forEach((action) => {
         const daysOverdue = Math.ceil(
           (new Date() - new Date(action.dueDate)) / (1000 * 60 * 60 * 24)
         )
@@ -71,6 +75,7 @@ export default function ActionItemsBoard() {
   }
 
   const handleDragEnd = async ({ card, targetColumn }) => {
+    if (!canUpdate) { alert('You don\'t have permission to update action items'); return }
     try {
       const updatedRecord = {
         ...card.data,
@@ -84,8 +89,8 @@ export default function ActionItemsBoard() {
   }
 
   const handleCardDelete = async (cardId, statusId) => {
-    if (currentUser?.role !== 'admin') {
-      alert('Only administrators can delete action items')
+    if (!canDelete) {
+      alert('You don\'t have permission to delete action items')
       return
     }
 
@@ -102,11 +107,13 @@ export default function ActionItemsBoard() {
   }
 
   const handleAddCard = (statusId) => {
+    if (!canCreate) { alert('You don\'t have permission to create action items'); return }
     setSelectedAction(null)
     setFormOpen(true)
   }
 
   const handleCardClick = (card) => {
+    if (!canUpdate) { alert('You don\'t have permission to edit action items'); return }
     setSelectedAction(card.data)
     setFormOpen(true)
   }
