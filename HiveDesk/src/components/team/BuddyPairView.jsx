@@ -1,22 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { Link2, RefreshCw, Plus, Pencil, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link2, Plus, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { getInitials } from '../../utils/helpers';
 
 export default function BuddyPairView({ onAdd, onEdit }) {
   const [pairs, setPairs] = useState([]);
-  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
-      const [p, u] = await Promise.all([
+      const [p] = await Promise.all([
         HiveDeskStorage.getAll('HiveDeskBuddyPairs'),
-        HiveDeskStorage.getAll('HiveDeskUsers'),
       ]);
       setPairs(p);
-      setUsers(u);
       setLoading(false);
     })();
   }, []);

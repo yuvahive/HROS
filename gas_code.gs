@@ -1,12 +1,20 @@
 /**
- * HROS Cloud Bridge v9.1
+ * HROS Cloud Bridge v9.2
  * Full-featured: CRUD, search, metrics, filtering, notifications
  * Auto-creates missing sheets with headers on first load
- * Deploy as: Web app → Execute as Me → Anyone can access
+ * 
+ * DEPLOYMENT (critical for CORS):
+ *   Deploy → New deployment → Web app
+ *   Execute as: Me
+ *   Who has access: Anyone  (NOT "Anyone with the link")
+ *   Click Deploy, copy the new URL
  */
 
 const SHEET_ID = '19Ki5EaHbAZPQcWQgvwvzcvDNzqa3I4CytSHiYgQgN-4';
-const API_KEY = 'hros-secure-key-2026';
+
+function getApiKey() {
+  return PropertiesService.getScriptProperties().getProperty('API_KEY') || '';
+}
 
 // Required sheets and their headers (auto-created if missing)
 const REQUIRED_SHEETS = {
@@ -36,11 +44,17 @@ const REQUIRED_SHEETS = {
   WorkUploads: ['id', 'uploaderId', 'uploaderName', 'uploaderRole', 'teamId', 'title', 'description', 'category', 'projectId', 'taskId', 'fileName', 'fileSize', 'fileType', 'fileData', 'driveFileId', 'driveFileUrl', 'externalLink', 'status', 'reviewerId', 'reviewerName', 'reviewDate', 'reviewComments', 'reviewRating', 'uploadDate', 'lastModifiedDate', 'version', 'tags', 'isArchived']
 };
 
+// ==================== CORS PREFLIGHT ====================
+function doOptions(e) {
+  return ContentService.createTextOutput('')
+    .setMimeType(ContentService.MimeType.TEXT);
+}
+
 // ==================== GET HANDLER ====================
 function doGet(e) {
   try {
     const key = e.parameter.key;
-    if (key !== API_KEY) {
+    if (key !== getApiKey()) {
       return ContentService.createTextOutput(JSON.stringify({ error: 'Unauthorized' }))
         .setMimeType(ContentService.MimeType.JSON);
     }
@@ -49,12 +63,12 @@ function doGet(e) {
     const action = e.parameter.action;
     const type = e.parameter.type;
     const id = e.parameter.id;
+    const callback = e.parameter.callback;
 
     // Action: Get specific record
     if (action === 'get' && type && id) {
       const record = getRecordById(ss, type, id);
-      return ContentService.createTextOutput(JSON.stringify({ data: record }))
-        .setMimeType(ContentService.MimeType.JSON);
+      return respondWithJson({ data: record }, callback);
     }
 
     // Action: Get sheet with filtering and pagination
@@ -67,23 +81,20 @@ function doGet(e) {
         offset: parseInt(e.parameter.offset) || 0
       };
       const result = filterSheetData(ss, type, filters);
-      return ContentService.createTextOutput(JSON.stringify(result))
-        .setMimeType(ContentService.MimeType.JSON);
+      return respondWithJson(result, callback);
     }
 
     // Action: Get metrics for dashboard
     if (action === 'metrics') {
       const metrics = getMetrics(ss);
-      return ContentService.createTextOutput(JSON.stringify(metrics))
-        .setMimeType(ContentService.MimeType.JSON);
+      return respondWithJson(metrics, callback);
     }
 
     // Action: Search across all sheets
     if (action === 'search') {
       const query = e.parameter.q;
       const results = searchAllSheets(ss, query);
-      return ContentService.createTextOutput(JSON.stringify(results))
-        .setMimeType(ContentService.MimeType.JSON);
+      return respondWithJson(results, callback);
     }
 
     // Default: Get all sheets as flat arrays
@@ -94,12 +105,10 @@ function doGet(e) {
       const name = sheet.getName();
       data[name] = getSheetRows(ss, name);
     });
-    return ContentService.createTextOutput(JSON.stringify(data))
-      .setMimeType(ContentService.MimeType.JSON);
+    return respondWithJson(data, callback);
 
   } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({ error: err.message }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return respondWithJson({ error: err.message }, e.parameter.callback);
   }
 }
 
@@ -109,7 +118,7 @@ function doPost(e) {
     const payload = JSON.parse(e.postData.contents);
     const { key, action, type, id, data } = payload;
 
-    if (key !== API_KEY) {
+    if (key !== getApiKey()) {
       return ContentService.createTextOutput(JSON.stringify({ error: 'Unauthorized' }))
         .setMimeType(ContentService.MimeType.JSON);
     }
@@ -492,6 +501,7 @@ function getMetrics(ss) {
  * Skips sheets that already exist. Safe to call on every request.
  */
 function ensureAllSheets(ss) {
+  if (!ss) return;
   Object.keys(REQUIRED_SHEETS).forEach(sheetName => {
     let sheet = ss.getSheetByName(sheetName);
     if (!sheet) {
@@ -505,6 +515,17 @@ function ensureAllSheets(ss) {
 }
 
 // ==================== HELPER FUNCTIONS ====================
+
+function respondWithJson(data, callback) {
+  const json = JSON.stringify(data);
+  if (callback) {
+    // JSONP response: callback({"key":"value"})
+    return ContentService.createTextOutput(callback + '(' + json + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService.createTextOutput(json)
+    .setMimeType(ContentService.MimeType.JSON);
+}
 
 function parseRows(vals, headers) {
   return vals.map(row => parseRow(row, headers));

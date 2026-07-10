@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Columns3, Plus, GripVertical, Clock, CheckCircle2, AlertTriangle, FileCode2, Eye, Download } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Columns3, Plus, GripVertical, CheckCircle2, AlertTriangle, FileCode2, Eye, Download } from 'lucide-react';
 import QuestionForm from '../questions/QuestionForm';
 import QuestionCard from '../questions/QuestionCard';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
@@ -20,7 +20,6 @@ const DIFFICULTY_COLORS = { Easy: 'text-emerald-400', Medium: 'text-amber-400', 
 export default function QuestionPipeline() {
   const { isAdmin, isLead, hasPermission } = useRBAC();
   const [questions, setQuestions] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingQ, setEditingQ] = useState(null);
   const [selectedQ, setSelectedQ] = useState(null);
@@ -34,10 +33,8 @@ export default function QuestionPipeline() {
   const [showExport, setShowExport] = useState(false);
 
   const load = async () => {
-    setLoading(true);
     const data = await HiveDeskStorage.getAll('HiveDeskQuestions');
     setQuestions(data);
-    setLoading(false);
   };
 
   useEffect(() => { load(); }, [refreshSignal]);
@@ -128,7 +125,6 @@ export default function QuestionPipeline() {
       {/* Kanban Board */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 min-h-[400px]">
         {COLUMNS.map(col => {
-          const Icon = col.icon;
           return (
             <div key={col.id} className="space-y-2" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, col.id)}>
               <div className="flex items-center gap-2 mb-2 px-1">

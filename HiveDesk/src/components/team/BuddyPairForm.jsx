@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Save, Link2 } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
-import { useAuth } from '../../auth/AuthContext';
+import { useNotifications } from '../../auth/Notifications';
 import { generateId } from '../../utils/helpers';
 
 export default function BuddyPairForm({ pair, onClose, onSaved }) {
-  const { isAdmin } = useAuth();
+  const { notify } = useNotifications();
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState({
     personAId: pair?.personAId || '',
@@ -41,6 +41,16 @@ export default function BuddyPairForm({ pair, onClose, onSaved }) {
           ...form,
           id: generateId('BP'),
           createdAt: new Date().toISOString(),
+        });
+        [form.personAId, form.personBId].forEach(id => {
+          if (id) notify({
+            userId: id,
+            type: 'info',
+            title: 'Buddy Pair Assigned',
+            message: `You've been paired with ${id === form.personAId ? form.personBName : form.personAName}`,
+            resourceType: 'buddy',
+            link: 'team'
+          });
         });
       }
       onSaved?.();

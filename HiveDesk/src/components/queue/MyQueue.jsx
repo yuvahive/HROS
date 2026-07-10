@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Inbox, FileCode2, Clock, AlertTriangle, CheckCircle2, GripVertical, User } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { useAuth } from '../../auth/AuthContext';
-import { useRBAC } from '../../auth/RBAC';
 import { useRefreshSignal } from '../../auth/RefreshContext';
 import { formatDate } from '../../utils/helpers';
 
@@ -32,7 +31,6 @@ const PRIORITY_COLORS = {
 export default function MyQueue() {
   const refreshSignal = useRefreshSignal();
   const { currentUser } = useAuth();
-  const { role } = useRBAC();
   const [questions, setQuestions] = useState({ assigned: [], created: [], inReview: [], needsRevision: [] });
   const [reviews, setReviews] = useState([]);
   const [notifications, setNotifications] = useState([]);
@@ -97,7 +95,7 @@ export default function MyQueue() {
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDragEnd = (e) => {
+  const handleDragEnd = () => {
     setDragged(null);
   };
 

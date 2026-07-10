@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Save, Target, UserPlus } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Save, Target } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { useConfig } from '../../config/ConfigContext';
 import { generateId } from '../../utils/helpers';

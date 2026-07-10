@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Activity, TrendingUp, Heart, Smile, Frown, Meh } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Activity, TrendingUp, Heart, Smile, Meh } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { useAuth } from '../../auth/AuthContext';
 import { formatDate } from '../../utils/helpers';

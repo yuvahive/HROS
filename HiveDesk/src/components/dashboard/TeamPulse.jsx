@@ -1,5 +1,4 @@
-import React from 'react';
-import { Users, TrendingUp, PenLine } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { getInitials } from '../../utils/helpers';
 
 const AVATAR_COLORS = [

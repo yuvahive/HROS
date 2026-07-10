@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { X, Star, CheckCircle2, Code2, FileText, Lightbulb, AlertTriangle, MessageSquare } from 'lucide-react';
+import { useState } from 'react';
+import { X, CheckCircle2, Code2, FileText, Lightbulb, AlertTriangle, MessageSquare } from 'lucide-react';
 import { formatDate } from '../../utils/helpers';
 import QuestionComments from './QuestionComments';
 
-export default function QuestionCard({ question, onClose, onUpdate }) {
+export default function QuestionCard({ question, onClose }) {
   const [tab, setTab] = useState('overview');
   if (!question) return null;
 

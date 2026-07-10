@@ -1,5 +1,3 @@
-import React from 'react';
-
 const COLOR_MAP = {
   blue: { icon: 'bg-blue-500/15 text-blue-400', ring: 'ring-blue-500/10' },
   purple: { icon: 'bg-purple-500/15 text-purple-400', ring: 'ring-purple-500/10' },

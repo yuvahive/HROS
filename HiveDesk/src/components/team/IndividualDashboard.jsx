@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, TrendingUp, ClipboardCheck, Target, Calendar } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
-import { getInitials, formatDate } from '../../utils/helpers';
+import { getInitials } from '../../utils/helpers';
 
 export default function IndividualDashboard({ member, onBack }) {
   const [questions, setQuestions] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [checkIns, setCheckIns] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!member) return;
@@ -20,7 +19,6 @@ export default function IndividualDashboard({ member, onBack }) {
       setQuestions(q.data || []);
       setReviews(r.data || []);
       setCheckIns(c.data || []);
-      setLoading(false);
     })();
   }, [member]);
 

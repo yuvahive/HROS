@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, Suspense, lazy } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginPage from './components/LoginPage';
 import Sidebar from './components/Sidebar';
@@ -8,8 +8,6 @@ import MonthView from './components/MonthView';
 import WeekView from './components/WeekView';
 import DayView from './components/DayView';
 import TodaySchedule from './components/TodaySchedule';
-import HROSDashboard from './components/HROSDashboard';
-import HiveDeskDashboard from '../HiveDesk/src/HiveDeskApp';
 import useEvents from './hooks/useEvents';
 import useDarkMode from './hooks/useDarkMode';
 import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
@@ -18,7 +16,11 @@ import { exportEvents, importEvents } from './utils/storage';
 import { setupAutoBackup, isAutoBackupEnabled } from './utils/autoBackup';
 import { getPreviousMonth, getNextMonth } from './utils/dateUtils';
 import { initializeSampleData } from './utils/sampleData';
+import OnboardingPrompt from './components/OnboardingPrompt';
 import './styles/index.css';
+
+const HROSDashboard = lazy(() => import('./components/HROSDashboard'));
+const HiveDeskDashboard = lazy(() => import('../HiveDesk/src/HiveDeskApp'));
 
 // Generate unique ID (module scope to avoid stale closure)
 const generateUUID = () => {
@@ -227,7 +229,9 @@ function AppContent() {
         </div>
       ) : appMode === 'hivedesk' ? (
             <div className="h-screen w-screen">
-              <HiveDeskDashboard />
+              <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center"><div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-600 rounded-full animate-spin"></div></div>}>
+                <HiveDeskDashboard />
+              </Suspense>
             </div>
       ) : !currentUser ? (
         <LoginPage onSwitchToHiveDesk={() => setAppMode('hivedesk')} />
@@ -235,13 +239,15 @@ function AppContent() {
         <>
           {appMode === 'hros' ? (
             <div className="h-screen w-screen">
-              <HROSDashboard
-                currentUser={currentUser}
-                logout={logout}
-                onBackToCalendar={() => setAppMode('calendar')}
-                isDark={isDark}
-                onToggleDarkMode={toggleDarkMode}
-              />
+              <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center"><div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-600 rounded-full animate-spin"></div></div>}>
+                <HROSDashboard
+                  currentUser={currentUser}
+                  logout={logout}
+                  onBackToCalendar={() => setAppMode('calendar')}
+                  isDark={isDark}
+                  onToggleDarkMode={toggleDarkMode}
+                />
+              </Suspense>
             </div>
           ) : (
             // Calendar Mode (original UI)
@@ -355,6 +361,7 @@ function AppContent() {
           )}
         </>
       )}
+      <OnboardingPrompt />
     </div>
   );
 }

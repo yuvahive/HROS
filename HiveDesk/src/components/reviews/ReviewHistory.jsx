@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { History, Star, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { useAuth } from '../../auth/AuthContext';

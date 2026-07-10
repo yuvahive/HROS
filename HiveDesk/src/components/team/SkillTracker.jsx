@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { BookOpen, Plus, X, CheckCircle2, TrendingUp, Target } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { BookOpen, Plus, X, CheckCircle2, Target } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { useAuth } from '../../auth/AuthContext';
 import { useRefreshSignal } from '../../auth/RefreshContext';
-import { formatDate } from '../../utils/helpers';
 
 const ALL_SKILLS = [
   'React', 'Node.js', 'Python', 'SQL', 'TypeScript', 'System Design', 'DSA', 'DevOps',
@@ -41,7 +40,6 @@ export default function SkillTracker() {
   useEffect(() => { load(); }, [refreshSignal]);
 
   const mySkills = skills.filter(s => s.personId === currentUser?.id);
-  const teamSkills = skills.filter(s => s.personId !== currentUser?.id);
 
   const handleAdd = async () => {
     if (!newSkill) return;

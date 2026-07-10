@@ -20,6 +20,7 @@ export function useCloudPulse() {
 
 const USERS_CACHE_KEY = 'hros_cached_users'
 const USERS_CONFIG_KEY = 'hros_cached_idp'
+const SESSION_TIMEOUT = 30 * 24 * 60 * 60 * 1000 // 30 days
 
 const DEFAULT_ADMIN = {
   id: 'hros-admin-001',
@@ -42,18 +43,39 @@ export function AuthProvider({ children }) {
   const [cloudStatus, setCloudStatus] = useState('offline')
   const [viewingAs, setViewingAs] = useState(null) // Admin impersonation: null = viewing as self
 
-  // 1. Initial Load & Heartbeat (3-second Pulse, pauses when tab hidden)
+  // 1. Initial Load & Heartbeat (30-second Pulse, pauses when tab hidden)
   useEffect(() => {
     // A. INSTANT SESSION RESTORE (Avoids Re-login hindrance)
     const storedSession = localStorage.getItem('hros_current_user');
     if (storedSession) {
-      setCurrentUser(JSON.parse(storedSession));
+      const parsed = JSON.parse(storedSession);
+      const loginTime = parsed.loginTime ? new Date(parsed.loginTime).getTime() : 0;
+      const now = Date.now();
+      if (loginTime && (now - loginTime) > SESSION_TIMEOUT) {
+        localStorage.removeItem('hros_current_user');
+      } else {
+        setCurrentUser(parsed);
+      }
     }
 
-    // B. Initial sync
-    loadStoredDataWithCloud();
+    // B. Show cached data immediately, then sync in background
+    const cached = localStorage.getItem(USERS_CACHE_KEY);
+    if (cached) {
+      const cachedUsers = JSON.parse(cached);
+      if (cachedUsers.length > 0) {
+        setUsers(cachedUsers);
+        setLoading(false); // Don't block UI - show cached data instantly
+      }
+    }
+    const cachedConfig = localStorage.getItem(USERS_CONFIG_KEY);
+    if (cachedConfig) {
+      setIdpConfig(JSON.parse(cachedConfig));
+    }
 
-    // C. Setup 3-second heartbeat that pauses when tab is hidden
+    // C. Background sync (non-blocking)
+    loadStoredDataWithCloud(true);
+
+    // D. Setup 30-second heartbeat that pauses when tab is hidden
     let heartbeat = null
 
     const startHeartbeat = () => {
@@ -62,12 +84,11 @@ export function AuthProvider({ children }) {
         if (!document.hidden) {
           loadStoredDataWithCloud(true)
         }
-      }, 3000)
+      }, 30000)
     }
 
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        // Tab became visible — sync immediately
         loadStoredDataWithCloud(true)
       }
     }
@@ -141,7 +162,7 @@ export function AuthProvider({ children }) {
       console.error('Cloud heartbeat failed:', error);
       if (!isSilent) setCloudStatus('error');
     } finally {
-      if (!isSilent) setLoading(false);
+      setLoading(false);
     }
   }
 

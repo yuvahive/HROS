@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Award, Flame, Zap, Star, Crown, Target, CheckCircle2, TrendingUp } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { useAuth } from '../../auth/AuthContext';
-import { formatDate } from '../../utils/helpers';
 
 const BADGE_DEFS = [
   { id: 'first-published', label: 'First Published', icon: Star, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', desc: 'Published your first question' },

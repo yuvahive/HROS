@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Users, Target, TrendingUp, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Users, AlertTriangle } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { getInitials } from '../../utils/helpers';
 
@@ -15,17 +15,15 @@ export default function WorkloadView() {
   const [questions, setQuestions] = useState([]);
   const [sprints, setSprints] = useState([]);
   const [assignments, setAssignments] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       const raw = await HiveDeskStorage.fetchAll();
-      if (!raw) { setLoading(false); return; }
+      if (!raw) { return; }
       setUsers(Array.isArray(raw.HiveDeskUsers) ? raw.HiveDeskUsers : []);
       setQuestions(Array.isArray(raw.HiveDeskQuestions) ? raw.HiveDeskQuestions : []);
       setSprints(Array.isArray(raw.HiveDeskSprints) ? raw.HiveDeskSprints : []);
       setAssignments(Array.isArray(raw.HiveDeskSprintAssignments) ? raw.HiveDeskSprintAssignments : []);
-      setLoading(false);
     })();
   }, []);
 

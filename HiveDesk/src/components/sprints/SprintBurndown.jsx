@@ -1,24 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { TrendingDown, Calendar, Target, BarChart3 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { TrendingDown, BarChart3 } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
-import { formatDate } from '../../utils/helpers';
 
 export default function SprintBurndown() {
-  const [sprints, setSprints] = useState([]);
   const [questions, setQuestions] = useState([]);
   const [activeSprint, setActiveSprint] = useState(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       const raw = await HiveDeskStorage.fetchAll();
-      if (!raw) { setLoading(false); return; }
+      if (!raw) { return; }
       const allSprints = Array.isArray(raw.HiveDeskSprints) ? raw.HiveDeskSprints : [];
       const allQ = Array.isArray(raw.HiveDeskQuestions) ? raw.HiveDeskQuestions : [];
-      setSprints(allSprints);
       setQuestions(allQ);
       setActiveSprint(allSprints.find(s => s.status === 'active') || allSprints[0] || null);
-      setLoading(false);
     })();
   }, []);
 

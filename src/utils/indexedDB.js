@@ -99,6 +99,7 @@ const savePendingToDisk = () => {
 
 // Prevent concurrent syncs from stacking
 let isSyncing = false;
+let inflightSync = null; // Shared promise for deduplication
 
 const STORES = {
   events: 'events',
@@ -131,13 +132,14 @@ const STORES = {
  * Prevents concurrent syncs from stacking
  */
 export const syncAllFromCloud = async () => {
-  // Skip if sync already in progress
-  if (isSyncing) {
-    console.log('[LIVE SYNC] Sync already in progress, skipping pulse');
-    return liveCache;
+  // Deduplicate: if a sync is in flight, return the same promise
+  if (inflightSync) {
+    console.log('[LIVE SYNC] Deduplicating - reusing in-flight sync');
+    return inflightSync;
   }
-  
+
   isSyncing = true;
+  inflightSync = (async () => {
   try {
     const cloudData = await CloudStorage.fetchAll();
     if (!cloudData) return liveCache;
@@ -170,17 +172,22 @@ export const syncAllFromCloud = async () => {
       }
     });
 
-    // Retry failed updates
+    // Retry failed updates (max 3 per cycle to avoid blocking)
     if (pendingUpdates.length > 0) {
-      console.log(`[LIVE SYNC] Retrying ${pendingUpdates.length} failed updates...`);
-      const updates = [...pendingUpdates];
-      pendingUpdates = [];
+      const batch = pendingUpdates.splice(0, 3);
+      console.log(`[LIVE SYNC] Retrying ${batch.length}/${pendingUpdates.length + batch.length} failed updates...`);
       savePendingToDisk();
-      
-      for (const update of updates) {
-        const success = await CloudStorage.update(update.type, update.data, update.action, update.id);
-        if (!success) {
-          pendingUpdates.push(update); // Re-queue if failed
+
+      const results = await Promise.allSettled(
+        batch.map(update =>
+          CloudStorage.update(update.type, update.data, update.action, update.id)
+            .then(ok => ({ ok, update }))
+        )
+      );
+
+      for (const result of results) {
+        if (result.status === 'fulfilled' && !result.value.ok) {
+          pendingUpdates.push(result.value.update);
         }
       }
       savePendingToDisk();
@@ -192,7 +199,10 @@ export const syncAllFromCloud = async () => {
     return liveCache;
   } finally {
     isSyncing = false;
+    inflightSync = null;
   }
+  })();
+  return inflightSync;
 };
 
 /**

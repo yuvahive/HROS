@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Rocket, Plus, GripVertical } from 'lucide-react';
 import SprintSetup from './SprintSetup';
 import SprintAssignmentForm from './SprintAssignmentForm';
@@ -16,17 +16,14 @@ const COL_COLORS = {
 export default function SprintBoard() {
   const { isAdmin, isLead } = useRBAC();
   const [sprints, setSprints] = useState([]);
-  const [loading, setLoading] = useState(true);
   const refreshSignal = useRefreshSignal();
   const [showForm, setShowForm] = useState(false);
   const [assignSprint, setAssignSprint] = useState(null);
   const [dragged, setDragged] = useState(null);
 
   const load = async () => {
-    setLoading(true);
     const data = await HiveDeskStorage.getAll('HiveDeskSprints');
     setSprints(data);
-    setLoading(false);
   };
 
   useEffect(() => { load(); }, [refreshSignal]);

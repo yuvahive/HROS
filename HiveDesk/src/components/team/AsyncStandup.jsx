@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { MessageCircle, Send, X, Clock, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { MessageCircle, Send, X, CheckCircle2 } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { useAuth } from '../../auth/AuthContext';
 import { useRefreshSignal } from '../../auth/RefreshContext';
-import { formatDate } from '../../utils/helpers';
 
 export default function AsyncStandup() {
   const { currentUser } = useAuth();

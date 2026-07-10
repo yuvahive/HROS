@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Save, Plus, ChevronDown, ChevronUp, Code2, FileText, Lightbulb } from 'lucide-react';
+import { useState } from 'react';
+import { X, Save, ChevronDown, ChevronUp, Code2, FileText, Lightbulb } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { useAuth } from '../../auth/AuthContext';
 import { useConfig } from '../../config/ConfigContext';

@@ -1,10 +1,11 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useState, useEffect, useContext } from 'react';
 import { HiveDeskStorage } from '../services/HiveDeskStorage';
 
 const AuthContext = createContext();
 
 const USERS_CACHE_KEY = 'hivedesk_cached_users';
-const USERS_CONFIG_KEY = 'hivedesk_cached_config';
+
+const SESSION_TIMEOUT = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 const DEFAULT_ADMIN = {
   id: 'hros-admin-001',
@@ -25,11 +26,19 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [cloudStatus, setCloudStatus] = useState('offline');
   const [lastPulse, setLastPulse] = useState(Date.now());
+  const [impersonatedRole, setImpersonatedRole] = useState(null);
 
   useEffect(() => {
     const storedSession = localStorage.getItem('hivedesk_current_user');
     if (storedSession) {
-      setCurrentUser(JSON.parse(storedSession));
+      const parsed = JSON.parse(storedSession);
+      const loginTime = parsed.loginTime ? new Date(parsed.loginTime).getTime() : 0;
+      const now = Date.now();
+      if (loginTime && (now - loginTime) > SESSION_TIMEOUT) {
+        localStorage.removeItem('hivedesk_current_user');
+      } else {
+        setCurrentUser(parsed);
+      }
     }
 
     loadFromCloud();
@@ -61,6 +70,8 @@ export function AuthProvider({ children }) {
 
   const loadFromCloud = async (isSilent = false) => {
     if (!isSilent) setCloudStatus('syncing');
+    console.log('[HiveDesk] GAS_URL:', import.meta.env.VITE_GAS_URL);
+    console.log('[HiveDesk] GAS_API_KEY:', import.meta.env.VITE_GAS_API_KEY ? 'set' : 'MISSING');
 
     try {
       const cloudData = await HiveDeskStorage.fetchAll();
@@ -86,7 +97,7 @@ export function AuthProvider({ children }) {
 
         setCloudStatus('online');
       } else if (!isSilent) {
-        setUsers(prev => {
+        setUsers(() => {
           const cached = localStorage.getItem(USERS_CACHE_KEY);
           const cachedUsers = cached ? JSON.parse(cached) : [];
           if (cachedUsers.length > 0) return cachedUsers;
@@ -108,24 +119,32 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const login = (email, password) => {
-    const user = users.find((u) =>
-      u.email &&
-      u.email.toLowerCase() === email.trim().toLowerCase() &&
-      u.password === password.trim() &&
-      u.isActive
-    );
+  const login = async (email, password) => {
+    try {
+      const GAS_URL = import.meta.env.VITE_GAS_URL;
+      const GAS_API_KEY = import.meta.env.VITE_GAS_API_KEY;
+      const response = await fetch(`${GAS_URL}?key=${GAS_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ key: GAS_API_KEY, action: 'login', email, password })
+      });
+      const result = await response.json();
+      if (!result.success) return { success: false, error: result.error };
 
-    if (!user) return { success: false, error: 'Invalid credentials' };
+      const userData = {
+        id: result.user.id, email: result.user.email, name: result.user.name,
+        role: result.user.role, domain: result.user.domain || '',
+        loginTime: new Date().toISOString(),
+        sessionToken: result.sessionToken,
+        expiresAt: result.expiresAt
+      };
 
-    const userData = {
-      id: user.id, email: user.email, name: user.name, role: user.role,
-      domain: user.domain || '', loginTime: new Date().toISOString()
-    };
-
-    setCurrentUser(userData);
-    localStorage.setItem('hivedesk_current_user', JSON.stringify(userData));
-    return { success: true, user: userData };
+      setCurrentUser(userData);
+      localStorage.setItem('hivedesk_current_user', JSON.stringify(userData));
+      return { success: true, user: userData };
+    } catch {
+      return { success: false, error: 'Network error' };
+    }
   };
 
   const logout = () => {
@@ -177,8 +196,11 @@ export function AuthProvider({ children }) {
     isAdmin: currentUser?.role === 'admin',
     isLead: currentUser?.role === 'lead' || currentUser?.role === 'admin',
     login, logout, addUser, updateUser, deleteUser,
-    hasPermission: () => true,
     refresh: () => loadFromCloud(false),
+    impersonatedRole,
+    startImpersonation: (role) => setImpersonatedRole(role),
+    stopImpersonation: () => setImpersonatedRole(null),
+    effectiveRole: impersonatedRole || currentUser?.role || null,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

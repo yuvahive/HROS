@@ -1,7 +1,5 @@
-import { generateId } from '../utils/helpers';
-
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwvKiKdrGBgqGuDnVc9kjJTSzmU3DRXkeBB0eayd2mnD7GmZXlT8tKxUHpiUH9-JKdMaA/exec';
-const GAS_API_KEY = 'hivedesk-secure-key-2026';
+const GAS_URL = import.meta.env.VITE_GAS_URL;
+const GAS_API_KEY = import.meta.env.VITE_GAS_API_KEY;
 const FETCH_TIMEOUT = 30000;
 const UPDATE_TIMEOUT = 15000;
 const CACHE_TTL = 30000;
@@ -31,19 +29,39 @@ async function _fetchAll() {
 }
 
 async function gasPost(payload) {
+  const storedSession = localStorage.getItem('hivedesk_current_user');
+  const sessionToken = storedSession ? JSON.parse(storedSession).sessionToken : '';
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), UPDATE_TIMEOUT);
   try {
     const res = await fetch(`${GAS_URL}?key=${GAS_API_KEY}`, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ key: GAS_API_KEY, ...payload }),
+      body: JSON.stringify({ key: GAS_API_KEY, sessionToken, ...payload }),
       signal: controller.signal
     });
     clearTimeout(timeoutId);
     _cache = null; _cacheTime = 0;
     return res.ok || res.status === 200;
   } catch (e) { clearTimeout(timeoutId); console.error('[HiveDesk] post failed:', e); return false; }
+}
+
+async function gasGet(action, params = {}) {
+  const url = new URL(GAS_URL);
+  url.searchParams.set('key', GAS_API_KEY);
+  url.searchParams.set('action', action);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+  try {
+    const response = await fetch(url.toString(), { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
 }
 
 export function bustCache() {
@@ -171,11 +189,36 @@ export const HiveDeskStorage = {
     return gasPost({ action: 'markNotificationsRead', userId, ids });
   },
 
+  async getReviewer(curatorId) {
+    try {
+      const result = await gasGet('getReviewer', { curatorId });
+      return result?.reviewerId || null;
+    } catch { return null; }
+  },
+
+  async assignBuddy(personAId, personBId) {
+    return gasPost({ action: 'assignBuddy', personAId, personBId });
+  },
+
+  async rotateBuddies() {
+    return gasPost({ action: 'rotateBuddies' });
+  },
+
+  async promoteUser(userId, newRole) {
+    return gasPost({ action: 'promoteUser', userId, newRole });
+  },
+
+  async checkPromotions() {
+    return gasPost({ action: 'checkPromotions' });
+  },
+
   async _write(type, action, data, id, extra) {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), UPDATE_TIMEOUT);
-      const payload = { key: GAS_API_KEY, action };
+      const storedSession = localStorage.getItem('hivedesk_current_user');
+      const sessionToken = storedSession ? JSON.parse(storedSession).sessionToken : '';
+      const payload = { key: GAS_API_KEY, action, sessionToken };
       if (action === 'delete') { payload.type = type; payload.id = id; }
       else if (action === 'updateConfig') { Object.assign(payload, extra); }
       else { payload.type = type; payload.data = data; }

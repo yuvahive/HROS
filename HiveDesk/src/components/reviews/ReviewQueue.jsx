@@ -1,10 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ClipboardCheck, CheckCircle2, AlertTriangle, MessageSquare, ArrowRight, GripVertical, Clock, User, Star } from 'lucide-react';
 import ReviewForm from './ReviewForm';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
-import { useRBAC } from '../../auth/RBAC';
 import { useRefreshSignal } from '../../auth/RefreshContext';
-import { formatDate } from '../../utils/helpers';
 
 const COLUMNS = [
   { id: 'in-review', label: 'Pending Review', color: 'bg-amber-400', dark: 'bg-amber-500/15', border: 'border-amber-500/20', icon: ClipboardCheck, desc: 'Awaiting review' },
@@ -56,7 +54,7 @@ export default function ReviewQueue() {
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDragEnd = (e) => {
+  const handleDragEnd = () => {
     setDragged(null);
     setDragOverCol(null);
     dragRef.current = null;

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Bell, Check, CheckCheck, X, FileCode2, UserPlus, AlertTriangle, MessageSquare, Clock } from 'lucide-react';
 import { useNotifications } from '../../auth/Notifications';
 import { formatDateTime } from '../../utils/helpers';
@@ -20,7 +20,7 @@ const TYPE_COLORS = {
 };
 
 export default function NotificationBell() {
-  const { unreadCount, unread, markRead, markAllRead } = useNotifications();
+  const { unreadCount, unread, markRead, markAllRead, live } = useNotifications();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -38,6 +38,7 @@ export default function NotificationBell() {
         title="Notifications"
       >
         <Bell className="w-[18px] h-[18px]" />
+        {live && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full" title="Live sync active" />}
         {unreadCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-red-500 rounded-full text-[9px] font-bold flex items-center justify-center text-hd-text px-1 animate-pulse">
             {unreadCount > 9 ? '9+' : unreadCount}

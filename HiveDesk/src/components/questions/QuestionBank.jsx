@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, FileCode2, GripVertical, User, Star, Clock, CheckCircle2, AlertTriangle, Ban, Archive, Hourglass, Download } from 'lucide-react';
 import QuestionForm from './QuestionForm';
 import QuestionCard from './QuestionCard';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { useRBAC } from '../../auth/RBAC';
+import { useAuth } from '../../auth/AuthContext';
+import { useNotifications } from '../../auth/Notifications';
 import { useRefreshSignal } from '../../auth/RefreshContext';
 import { formatDate } from '../../utils/helpers';
 import { exportToCSV, exportToJSON } from '../../utils/export';
@@ -26,6 +28,8 @@ const DIFFICULTY_STYLES = {
 export default function QuestionBank() {
   const refreshSignal = useRefreshSignal();
   const { hasPermission } = useRBAC();
+  const { user } = useAuth();
+  const { notify } = useNotifications();
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -59,7 +63,7 @@ export default function QuestionBank() {
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDragEnd = (e) => {
+  const handleDragEnd = () => {
     setDragged(null);
     setDragOverCol(null);
   };
@@ -80,6 +84,20 @@ export default function QuestionBank() {
     const q = questions.find(q => q.id === dragged);
     if (q && q.status !== targetStatus) {
       await HiveDeskStorage.update('HiveDeskQuestions', dragged, { status: targetStatus });
+      if (q.creatorId && q.creatorId !== user?.id) {
+        const statusLabels = { 'in-review': 'submitted for review', 'approved': 'approved', 'rejected': 'rejected', 'needs-revision': 'needs revision', 'published': 'published' };
+        notify({
+          userId: q.creatorId,
+          type: 'status_change',
+          title: `Question ${statusLabels[targetStatus] || targetStatus}`,
+          message: `"${q.title}" has been moved to ${targetStatus}`,
+          resourceId: q.id,
+          resourceType: 'question',
+          fromUserId: user?.id,
+          fromUserName: user?.name,
+          link: 'questions'
+        });
+      }
       load();
     }
     setDragged(null);

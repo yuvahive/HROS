@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { DollarSign, Zap, Flame, CheckCircle2, Clock, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { DollarSign, Zap, Clock, User } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { useAuth } from '../../auth/AuthContext';
 import { formatDate } from '../../utils/helpers';
@@ -7,7 +7,6 @@ import { formatDate } from '../../utils/helpers';
 export default function QuestionBounties() {
   const { currentUser } = useAuth();
   const [bounties, setBounties] = useState([]);
-  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,9 +14,7 @@ export default function QuestionBounties() {
       const raw = await HiveDeskStorage.fetchAll();
       if (!raw) { setLoading(false); return; }
       const questions = Array.isArray(raw.HiveDeskQuestions) ? raw.HiveDeskQuestions : [];
-      const u = Array.isArray(raw.HiveDeskUsers) ? raw.HiveDeskUsers : [];
       setBounties(questions.filter(q => q.bountyPoints && Number(q.bountyPoints) > 0 && q.status !== 'published' && q.status !== 'rejected'));
-      setUsers(u.filter(u => u.isActive === 'true' || u.isActive === true));
       setLoading(false);
     })();
   }, []);

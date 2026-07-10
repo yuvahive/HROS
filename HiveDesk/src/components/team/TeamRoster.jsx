@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Mail, Target, Briefcase } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Users, UserPlus, Target, Briefcase } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { useRBAC } from '../../auth/RBAC';
 import { getInitials } from '../../utils/helpers';

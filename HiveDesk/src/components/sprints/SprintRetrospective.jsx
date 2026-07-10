@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { History, TrendingUp, Users, Target, Star, BarChart3, Lock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { History, BarChart3, Lock } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { useRBAC } from '../../auth/RBAC';
 import { formatDate } from '../../utils/helpers';

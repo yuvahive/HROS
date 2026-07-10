@@ -1,4 +1,3 @@
-import React from 'react';
 import { RefreshCw, Cloud, CloudOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import NotificationBell from '../notifications/NotificationBell';

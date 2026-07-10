@@ -1,4 +1,4 @@
-import React from 'react';
+
 
 function SkeletonPulse({ className = '' }) {
   return <div className={`animate-pulse bg-hd-raised rounded-xl ${className}`} />;

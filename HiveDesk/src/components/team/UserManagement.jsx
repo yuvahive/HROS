@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Edit2, Trash2, Shield, Search, X, Save, Mail, Key, Briefcase, Target, ToggleLeft, ToggleRight, AlertTriangle, ChevronDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Users, UserPlus, Edit2, Trash2, Shield, Search, X, Save, Briefcase, ToggleLeft, ToggleRight, AlertTriangle } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { useAuth } from '../../auth/AuthContext';
 import { useRBAC } from '../../auth/RBAC';
@@ -10,12 +10,6 @@ const ROLE_BADGES = {
   admin: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
   lead: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
   curator: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
-};
-
-const ROLE_COLORS = {
-  admin: 'text-purple-400',
-  lead: 'text-blue-400',
-  curator: 'text-hd-muted',
 };
 
 const AVATAR_COLORS = [

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, Save, Heart } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { createCheckIn } from '../../services/checkInService';

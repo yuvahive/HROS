@@ -59,7 +59,7 @@ export function getInMemoryUsers() {
 export function loginUser(email, password) {
   const users = inMemoryUsers.length > 0 ? inMemoryUsers : (() => {
     const cached = localStorage.getItem(USERS_CACHE_KEY);
-    if (cached) { try { return JSON.parse(cached); } catch {} }
+    if (cached) { try { return JSON.parse(cached); } catch { /* ignore parse error */ } }
     return [DEFAULT_ADMIN];
   })();
 

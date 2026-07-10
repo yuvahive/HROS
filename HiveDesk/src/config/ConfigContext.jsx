@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { loadConfig, getCachedConfig, updateConfigValue, getAllConfigRows } from '../services/configService';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { loadConfig, updateConfigValue, getAllConfigRows } from '../services/configService';
 import { useAuth } from '../auth/AuthContext';
 
 const ConfigContext = createContext(null);

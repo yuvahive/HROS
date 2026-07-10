@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { MessageSquare, Send, Trash2, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { MessageSquare, Send, Trash2 } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { useAuth } from '../../auth/AuthContext';
 import { formatDateTime, getInitials } from '../../utils/helpers';
 
-export default function QuestionComments({ questionId, onClose }) {
+export default function QuestionComments({ questionId }) {
   const { user } = useAuth();
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');

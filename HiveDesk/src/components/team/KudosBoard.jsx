@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Heart, Send, X, ThumbsUp, MessageCircle } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { useAuth } from '../../auth/AuthContext';
+import { useNotifications } from '../../auth/Notifications';
 import { useRefreshSignal } from '../../auth/RefreshContext';
 import { formatDate } from '../../utils/helpers';
 
 export default function KudosBoard() {
   const { currentUser } = useAuth();
+  const { notify } = useNotifications();
   const refreshSignal = useRefreshSignal();
   const [kudos, setKudos] = useState([]);
   const [users, setUsers] = useState([]);
@@ -38,6 +40,19 @@ export default function KudosBoard() {
       createdAt: new Date().toISOString(),
     };
     await HiveDeskStorage.insert('HiveDeskKudos', kudo);
+    const recipient = users.find(u => u.name === form.to);
+    if (recipient?.id) {
+      notify({
+        userId: recipient.id,
+        type: 'kudos',
+        title: 'Kudos Received',
+        message: `${currentUser?.name} gave you kudos: "${form.message}"`,
+        resourceType: 'kudos',
+        fromUserId: currentUser?.id,
+        fromUserName: currentUser?.name,
+        link: 'kudos'
+      });
+    }
     setForm({ to: '', message: '' });
     setShowForm(false);
     load();

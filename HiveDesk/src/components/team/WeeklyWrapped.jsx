@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Sparkles, FileCode2, CheckCircle2, Clock, Award, TrendingUp, RefreshCw, Save } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { useAuth } from '../../auth/AuthContext';
 import { formatDate } from '../../utils/helpers';
-import { useNotifications } from '../../auth/Notifications';
 
 const COLORS = ['from-indigo-500 to-purple-600', 'from-emerald-500 to-teal-600', 'from-amber-500 to-orange-600', 'from-pink-500 to-rose-600', 'from-cyan-500 to-blue-600'];
 
@@ -22,7 +21,6 @@ function getWeekStart(d = new Date()) {
 
 export default function WeeklyWrapped() {
   const { currentUser } = useAuth();
-  const { notify } = useNotifications();
   const [data, setData] = useState(null);
   const [allWrapped, setAllWrapped] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -89,9 +87,8 @@ export default function WeeklyWrapped() {
         createdAt: new Date().toISOString(),
       });
       setHasSaved(true);
-      notify?.('Weekly Wrapped saved!', 'success');
     } catch (e) {
-      notify?.('Failed to save: ' + e.message, 'error');
+      console.error('Failed to save wrapped:', e);
     }
     setSaving(false);
   };

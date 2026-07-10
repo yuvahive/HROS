@@ -1,57 +1,60 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import { realtimeSync } from '../services/realtimeSync';
+
+let swRegistration = null;
+
+async function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return null;
+  try {
+    swRegistration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    return swRegistration;
+  } catch (e) { return null; }
+}
+
+function firePush(title, body, url) {
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+  if (swRegistration && swRegistration.active) {
+    swRegistration.active.postMessage({
+      type: 'SHOW_NOTIFICATION',
+      notification: { title, body, tag: `hros-${Date.now()}`, url }
+    });
+  } else {
+    new Notification(title, { body, icon: '/favicon.svg' });
+  }
+}
 
 export const useNotifications = () => {
+  useEffect(() => {
+    registerServiceWorker();
+    realtimeSync.init();
+    return () => realtimeSync.destroy();
+  }, []);
+
   const requestPermission = useCallback(async () => {
-    if (!('Notification' in window)) {
-      console.log('This browser does not support notifications');
-      return false;
-    }
-
-    if (Notification.permission === 'granted') {
-      return true;
-    }
-
+    if (!('Notification' in window)) return false;
+    if (Notification.permission === 'granted') return true;
     if (Notification.permission !== 'denied') {
-      const permission = await Notification.requestPermission();
-      return permission === 'granted';
+      return (await Notification.requestPermission()) === 'granted';
     }
-
     return false;
   }, []);
 
   const sendNotification = useCallback((title, options = {}) => {
-    if (!('Notification' in window)) return;
-    if (Notification.permission === 'granted') {
-      new Notification(title, {
-        icon: '/favicon.svg',
-        ...options
-      });
-    }
+    firePush(title, options.body || '', options.url);
   }, []);
 
   const scheduleNotification = useCallback((eventDate, eventTitle, minutesBefore = 15) => {
-    const notificationTime = new Date(eventDate).getTime() - (minutesBefore * 60 * 1000);
-    const now = new Date().getTime();
-    const delay = notificationTime - now;
-
+    const delay = new Date(eventDate).getTime() - Date.now() - (minutesBefore * 60 * 1000);
     if (delay > 0) {
       return setTimeout(() => {
-        sendNotification(`Reminder: ${eventTitle}`, {
-          body: `Your event starts in ${minutesBefore} minutes`,
-          tag: `reminder-${eventTitle}`,
-          requireInteraction: true
-        });
+        firePush(`Reminder: ${eventTitle}`, `Your event starts in ${minutesBefore} minutes`);
       }, delay);
     }
-
     return null;
-  }, [sendNotification]);
+  }, []);
 
-  return {
-    requestPermission,
-    sendNotification,
-    scheduleNotification
-  };
+  return { requestPermission, sendNotification, scheduleNotification };
 };
 
 export default useNotifications;

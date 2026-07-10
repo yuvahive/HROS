@@ -1,23 +1,24 @@
 import React from 'react';
-import { LayoutDashboard, FileCode2, Rocket, ClipboardCheck, Users, Settings, LogOut, Clock, Heart, BarChart3, ArrowLeft, ChevronLeft, ChevronRight, ChevronDown, Hexagon, Shield, FileSearch, Inbox, Columns3, Upload, Activity, Gauge, Sparkles, Award, DollarSign, BookOpen, MessageCircle, Flag } from 'lucide-react';
+import { LayoutDashboard, FileCode2, ClipboardCheck, Users, Settings, LogOut, Clock, Heart, BarChart3, ArrowLeft, ChevronLeft, ChevronRight, ChevronDown, Hexagon, Shield, FileSearch, Inbox, Upload, Activity, Gauge, Sparkles, Award, BookOpen, MessageCircle, Flag, Database, TreePine, User, Trophy, Flame, Eye, X } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { useRBAC } from '../../auth/RBAC';
 
 const CORE_ITEMS = [
   { id: 'dashboard', label: 'War Room', icon: LayoutDashboard, minRole: 'curator' },
+  { id: 'missions', label: 'Mission Tree', icon: TreePine, minRole: 'curator' },
+  { id: 'profile', label: 'My Profile', icon: User, minRole: 'curator' },
   { id: 'queue', label: 'My Queue', icon: Inbox, minRole: 'curator' },
-  { id: 'standup', label: 'Standup', icon: MessageCircle, minRole: 'curator' },
-  { id: 'bounties', label: 'Bounties', icon: DollarSign, minRole: 'curator' },
   { id: 'questions', label: 'Questions', icon: FileCode2, minRole: 'curator' },
-  { id: 'pipeline', label: 'Pipeline', icon: Columns3, minRole: 'curator' },
-  { id: 'sprints', label: 'Sprints', icon: Rocket, minRole: 'curator' },
   { id: 'reviews', label: 'Reviews', icon: ClipboardCheck, minRole: 'curator' },
   { id: 'team', label: 'Team', icon: Users, minRole: 'curator' },
-  { id: 'checkins', label: 'Check-Ins', icon: Heart, minRole: 'curator' },
-  { id: 'worklogs', label: 'Work Logs', icon: Clock, minRole: 'curator' },
 ];
 
 const MORE_ITEMS = [
+  { id: 'leaderboard', label: 'Leaderboard', icon: Trophy, minRole: 'curator' },
+  { id: 'streak', label: 'Streaks', icon: Flame, minRole: 'curator' },
+  { id: 'activity', label: 'Activity Feed', icon: Activity, minRole: 'curator' },
+  { id: 'standup', label: 'Standup', icon: MessageCircle, minRole: 'curator' },
+  { id: 'worklogs', label: 'Work Logs', icon: Clock, minRole: 'curator' },
   { id: 'skills', label: 'Skills', icon: BookOpen, minRole: 'curator' },
   { id: 'kudos', label: 'Kudos', icon: Heart, minRole: 'curator' },
   { id: 'goals', label: 'Goals', icon: Flag, minRole: 'curator' },
@@ -28,15 +29,17 @@ const MORE_ITEMS = [
   { id: 'moods', label: 'Mood Trends', icon: Activity, minRole: 'lead' },
   { id: 'retro', label: 'Retro', icon: Activity, minRole: 'lead' },
   { id: 'import', label: 'Import', icon: Upload, minRole: 'lead' },
+  { id: 'schema', label: 'Schema', icon: Database, minRole: 'lead' },
 ];
 
 const ADMIN_ITEMS = [
-  { id: 'users', label: 'Users', icon: Shield, minRole: 'admin' },
+  { id: 'admin', label: 'Admin Dashboard', icon: Shield, minRole: 'admin' },
+  { id: 'users', label: 'Users', icon: Users, minRole: 'admin' },
   { id: 'audit', label: 'Audit Log', icon: FileSearch, minRole: 'admin' },
   { id: 'settings', label: 'Settings', icon: Settings, minRole: 'admin' },
 ];
 
-const ROLE_LEVELS = { admin: 3, lead: 2, curator: 1 };
+const ROLE_LEVELS = { admin: 4, lead: 3, senior: 2, curator: 1, newcomer: 0 };
 
 function NavItem({ item, active, collapsed, onNavigate }) {
   const Icon = item.icon;
@@ -58,8 +61,15 @@ function NavItem({ item, active, collapsed, onNavigate }) {
   );
 }
 
-function NavContent({ coreItems, moreItems, adminItems, active, onNavigate, collapsed, user, onLogout, moreOpen, onToggleMore }) {
+function NavContent({ coreItems, moreItems, adminItems, active, onNavigate, collapsed, user, onLogout, moreOpen, onToggleMore, impersonatedRole, onStartImpersonation, onStopImpersonation }) {
   const showAdmin = adminItems.length > 0;
+  const [viewAsOpen, setViewAsOpen] = React.useState(false);
+  const VIEW_AS_ROLES = [
+    { role: 'lead', label: 'View as Lead', color: 'text-blue-400' },
+    { role: 'senior', label: 'View as Senior', color: 'text-purple-400' },
+    { role: 'curator', label: 'View as Curator', color: 'text-green-400' },
+    { role: 'newcomer', label: 'View as Newcomer', color: 'text-amber-400' },
+  ];
 
   if (collapsed) {
     return (
@@ -142,6 +152,45 @@ function NavContent({ coreItems, moreItems, adminItems, active, onNavigate, coll
       </nav>
 
       <div className="p-2 border-t border-hd-border space-y-1">
+        {showAdmin && (
+          <div className="relative">
+            <button onClick={() => setViewAsOpen(o => !o)}
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] font-medium transition-all ${
+                impersonatedRole
+                  ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                  : 'text-hd-muted hover:bg-hd-hover hover:text-hd-text'
+              }`}>
+              <Eye className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={1.8} />
+              {!collapsed && (
+                <>
+                  <span>{impersonatedRole ? `Viewing as ${impersonatedRole}` : 'View As...'}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 ml-auto transition-transform ${viewAsOpen ? '' : '-rotate-90'}`} />
+                </>
+              )}
+            </button>
+            {!collapsed && viewAsOpen && (
+              <div className="absolute bottom-full left-0 right-0 mb-1 bg-hd-surface border border-hd-border rounded-lg shadow-xl overflow-hidden z-50">
+                {impersonatedRole && (
+                  <button onClick={() => { onStopImpersonation(); setViewAsOpen(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[13px] font-medium text-red-400 hover:bg-red-500/10 border-b border-hd-border">
+                    <X className="w-4 h-4" />
+                    Exit View Mode
+                  </button>
+                )}
+                {VIEW_AS_ROLES.map(r => (
+                  <button key={r.role} onClick={() => { onStartImpersonation(r.role); setViewAsOpen(false); }}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-[13px] font-medium hover:bg-hd-hover transition-colors ${
+                      impersonatedRole === r.role ? 'bg-hd-hover ' + r.color : 'text-hd-muted ' + r.color
+                    }`}>
+                    <Eye className="w-4 h-4 opacity-60" />
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <button onClick={() => window.dispatchEvent(new Event('hivedesk-back'))}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-hd-muted hover:bg-hd-hover hover:text-hd-text transition-all"
           title="Back to Calendar">
@@ -167,7 +216,7 @@ function NavContent({ coreItems, moreItems, adminItems, active, onNavigate, coll
 }
 
 export default function Sidebar({ active, onNavigate, collapsed, onToggleCollapse, mobileOpen, onMobileClose }) {
-  const { user, logout } = useAuth();
+  const { user, logout, impersonatedRole, startImpersonation, stopImpersonation } = useAuth();
   const { role } = useRBAC();
   const userLevel = ROLE_LEVELS[role] || 0;
   const [moreOpen, setMoreOpen] = React.useState(() => {
@@ -205,7 +254,8 @@ export default function Sidebar({ active, onNavigate, collapsed, onToggleCollaps
             <NavContent coreItems={coreItems} moreItems={moreItems} adminItems={adminItems}
               active={active} onNavigate={onNavigate} collapsed={false}
               user={user} onLogout={logout}
-              moreOpen={moreOpen} onToggleMore={() => setMoreOpen(o => !o)} />
+              moreOpen={moreOpen} onToggleMore={() => setMoreOpen(o => !o)}
+              impersonatedRole={impersonatedRole} onStartImpersonation={startImpersonation} onStopImpersonation={stopImpersonation} />
           </div>
         </div>
       )}
@@ -219,7 +269,8 @@ export default function Sidebar({ active, onNavigate, collapsed, onToggleCollaps
         <NavContent coreItems={coreItems} moreItems={moreItems} adminItems={adminItems}
           active={active} onNavigate={onNavigate} collapsed={collapsed}
           user={user} onLogout={logout}
-          moreOpen={moreOpen} onToggleMore={() => setMoreOpen(o => !o)} />
+          moreOpen={moreOpen} onToggleMore={() => setMoreOpen(o => !o)}
+          impersonatedRole={impersonatedRole} onStartImpersonation={startImpersonation} onStopImpersonation={stopImpersonation} />
       </div>
     </>
   );

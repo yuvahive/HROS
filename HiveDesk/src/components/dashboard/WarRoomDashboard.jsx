@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Users, FileCode2, TrendingUp, ClipboardCheck, Clock, ArrowRight, Plus, Eye, Sparkles, AlertTriangle, CheckCircle2, Timer, Target } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { LayoutDashboard, Users, FileCode2, TrendingUp, ClipboardCheck, Clock, ArrowRight, Plus, Eye, Sparkles, AlertTriangle, Timer, Target } from 'lucide-react';
 import MetricCard from './MetricCard';
 import SprintStats from './SprintStats';
 import TeamPulse from './TeamPulse';
@@ -30,16 +30,14 @@ export default function WarRoomDashboard({ onNavigate }) {
   const [reviews, setReviews] = useState([]);
   const [sprints, setSprints] = useState([]);
   const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
   const { getVal } = useConfig();
-  const { role, isAdmin, isLead } = useRBAC();
+  const { isAdmin, isLead } = useRBAC();
   const refreshSignal = useRefreshSignal();
 
   const load = async () => {
-    setLoading(true);
     try {
       const raw = await HiveDeskStorage.fetchAll();
-      if (!raw) { setLoading(false); return; }
+      if (!raw) { return; }
 
       const allUsers = Array.isArray(raw.HiveDeskUsers) ? raw.HiveDeskUsers : [];
       const allQuestions = Array.isArray(raw.HiveDeskQuestions) ? raw.HiveDeskQuestions : [];
@@ -77,7 +75,6 @@ export default function WarRoomDashboard({ onNavigate }) {
       setSprints(allSprints);
       setLogs(allLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
     } catch (e) { console.error('[HiveDesk] Dashboard load failed:', e); }
-    setLoading(false);
   };
 
   useEffect(() => { load(); }, [refreshSignal]);

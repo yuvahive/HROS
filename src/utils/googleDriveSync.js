@@ -1,12 +1,18 @@
 // Google Drive Sync - Upload work files to HROS Drive folder
 // Uses GAS backend for file uploads (no OAuth needed on frontend)
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxczr_BAqXdmta5XMBxKibIMJlwZLGox-LknMoNRCaIkgL1JERqDgP1vmgfNuMWvuScIw/exec';
-const GAS_API_KEY = 'hros-secure-key-2026';
+const GAS_URL = import.meta.env.VITE_GAS_URL;
+const GAS_API_KEY = import.meta.env.VITE_GAS_API_KEY;
+
+if (!GAS_URL || !GAS_API_KEY) {
+  console.warn('[DRIVE] Missing VITE_GAS_URL or VITE_GAS_API_KEY in environment');
+}
 
 // HROS Work Uploads Drive Folder
-export const WORK_UPLOADS_FOLDER_ID = '1OLxNGROPrM7yYg3mjXF0orDiVA2kFLrN';
-export const WORK_UPLOADS_FOLDER_URL = 'https://drive.google.com/drive/folders/1OLxNGROPrM7yYg3mjXF0orDiVA2kFLrN';
+export const WORK_UPLOADS_FOLDER_ID = import.meta.env.VITE_WORK_FOLDER_ID;
+export const WORK_UPLOADS_FOLDER_URL = WORK_UPLOADS_FOLDER_ID
+  ? `https://drive.google.com/drive/folders/${WORK_UPLOADS_FOLDER_ID}`
+  : '';
 
 /**
  * Upload a file to the HROS Work Uploads Drive folder via GAS backend

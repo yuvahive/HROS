@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { ConfigProvider, useConfig } from './config/ConfigContext';
-import { RBACProvider, useRBAC, PermissionGate } from './auth/RBAC';
+import { RBACProvider, useRBAC } from './auth/RBAC';
 import { NotificationProvider } from './auth/Notifications';
 import { RefreshProvider, useRefreshTrigger } from './auth/RefreshContext';
 import { bustCache } from './services/HiveDeskStorage';
@@ -26,7 +26,6 @@ import WorkLogList from './components/team/WorkLogList';
 import WorkloadView from './components/team/WorkloadView';
 import CheckInForm from './components/team/CheckInForm';
 import UserManagement from './components/team/UserManagement';
-import BatchImport from './components/team/BatchImport';
 import TeamAnalytics from './components/analytics/TeamAnalytics';
 import MyQueue from './components/queue/MyQueue';
 import SettingsPanel from './components/settings/SettingsPanel';
@@ -39,11 +38,20 @@ import SkillTracker from './components/team/SkillTracker';
 import AsyncStandup from './components/team/AsyncStandup';
 import GoalSetting from './components/team/GoalSetting';
 import MoodTrends from './components/team/MoodTrends';
+import SchemaEditor from './components/admin/SchemaEditor';
+import ImportBridge from './components/imports/ImportBridge';
+import MissionTree from './components/missions/MissionTree';
+import CuratorProfile from './components/profile/CuratorProfile';
+import Leaderboard from './components/leaderboard/Leaderboard';
+import StreakTracker from './components/streak/StreakTracker';
+import TeamActivityFeed from './components/feed/TeamActivityFeed';
+import AdminDashboard from './components/admin/AdminDashboard';
+import OnboardingPrompt from './components/shared/OnboardingPrompt';
 
 function MainApp() {
   const { currentUser, loading: authLoading } = useAuth();
-  const { config, loading: configLoading, refresh: refreshConfig } = useConfig();
-  const { role, isAdmin, isLead } = useRBAC();
+  const { config, refresh: refreshConfig } = useConfig();
+  const { role } = useRBAC();
   const triggerRefresh = useRefreshTrigger();
   const [page, setPage] = useState('dashboard');
   const [selectedMember, setSelectedMember] = useState(null);
@@ -51,7 +59,6 @@ function MainApp() {
   const [showAddPair, setShowAddPair] = useState(false);
   const [editingPair, setEditingPair] = useState(null);
   const [showCheckIn, setShowCheckIn] = useState(false);
-  const [showBatchImport, setShowBatchImport] = useState(false);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -131,9 +138,16 @@ function MainApp() {
       </div>;
       case 'retro': return <SprintRetrospective />;
       case 'users': return <UserManagement />;
-      case 'import': return <BatchImport onClose={() => setPage('questions')} onSaved={handleRefresh} />;
+      case 'import': return <ImportBridge onClose={() => setPage('questions')} onSaved={handleRefresh} />;
       case 'audit': return <AuditLogViewer />;
       case 'settings': return <SettingsPanel />;
+      case 'schema': return <SchemaEditor />;
+      case 'missions': return <MissionTree />;
+      case 'profile': return <CuratorProfile />;
+      case 'leaderboard': return <Leaderboard />;
+      case 'streak': return <StreakTracker />;
+      case 'activity': return <TeamActivityFeed />;
+      case 'admin': return <AdminDashboard />;
       default: return <WarRoomDashboard onNavigate={setPage} />;
     }
   };
@@ -163,6 +177,13 @@ function MainApp() {
     import: { title: 'Batch Import', subtitle: 'Import questions from CSV' },
     audit: { title: 'Audit Log', subtitle: 'System activity history' },
     settings: { title: 'System Settings', subtitle: 'Configure targets, weights, and permissions' },
+    schema: { title: 'Question Schema', subtitle: 'Define structure for uploaded questions' },
+    missions: { title: 'Mission Tree', subtitle: 'Visual curriculum progress' },
+    profile: { title: 'Your Profile', subtitle: 'Stats, level, and impact' },
+    leaderboard: { title: 'Leaderboard', subtitle: 'Quality-ranked team performance' },
+    streak: { title: 'Streak Tracker', subtitle: 'Contribution streaks' },
+    activity: { title: 'Team Activity', subtitle: 'Real-time activity feed' },
+    admin: { title: 'Admin Dashboard', subtitle: 'Full system visibility' },
   };
 
   const current = pageTitles[page] || pageTitles.dashboard;
@@ -170,6 +191,7 @@ function MainApp() {
   return (
     <Layout title={current.title} subtitle={current.subtitle} onRefresh={handleRefresh} activePage={page} onNavigate={setPage}>
       {renderPage()}
+      <OnboardingPrompt />
       {showAddMember && <MemberForm onClose={() => setShowAddMember(false)} onSaved={handleRefresh} />}
       {showAddPair && <BuddyPairForm pair={editingPair} onClose={() => { setShowAddPair(false); setEditingPair(null); }} onSaved={handleRefresh} />}
     </Layout>

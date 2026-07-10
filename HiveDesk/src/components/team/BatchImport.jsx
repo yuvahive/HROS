@@ -1,9 +1,8 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Upload, FileText, FileJson, Sheet, CheckCircle2, AlertTriangle, X, Download, Loader2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { useAuth } from '../../auth/AuthContext';
-import { useNotifications } from '../../auth/Notifications';
 
 const CSV_TEMPLATE = `title,domain,topic,difficulty,tags,notes
 "Two Sum","arrays","hash-map","Easy","hash-table,two-pointer","Classic problem"
@@ -37,7 +36,6 @@ const FORMAT_OPTIONS = [
 
 export default function BatchImport({ onClose, onSaved }) {
   const { user } = useAuth();
-  const { notify } = useNotifications();
   const fileRef = useRef(null);
   const [format, setFormat] = useState('csv');
   const [file, setFile] = useState(null);
@@ -221,7 +219,6 @@ export default function BatchImport({ onClose, onSaved }) {
       }
 
       setResult({ success: true, count: results.length });
-      notify?.(`Imported ${results.length} questions successfully`, 'success');
       onSaved?.();
     } catch (e) {
       setResult({ success: false, error: e.message });

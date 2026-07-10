@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { X, Save, Rocket } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { useConfig } from '../../config/ConfigContext';
+import { useNotifications } from '../../auth/Notifications';
 import { generateId } from '../../utils/helpers';
 
 export default function SprintSetup({ onClose, onSaved }) {
   const { getVal } = useConfig();
+  const { notify } = useNotifications();
   const duration = getVal('target_sprint_duration_days', 7);
   const teamTarget = getVal('target_team_questions_per_week', 40);
 
@@ -44,6 +46,19 @@ export default function SprintSetup({ onClose, onSaved }) {
         avgQualityScore: 0,
         avgCompletionRate: 0,
         createdAt: new Date().toISOString(),
+      });
+      const activeUsers = users.filter(u => u.isActive === 'true' || u.isActive === true);
+      activeUsers.forEach(u => {
+        if (u.id !== form.sprintLeadId) {
+          notify({
+            userId: u.id,
+            type: 'info',
+            title: 'New Sprint Created',
+            message: `"${form.name}" — ${form.startDate} to ${form.endDate}. Target: ${form.targetQuestions} questions`,
+            resourceType: 'sprint',
+            link: 'sprints'
+          });
+        }
       });
       onSaved?.();
       onClose?.();

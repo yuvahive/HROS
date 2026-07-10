@@ -1,5 +1,12 @@
 ﻿var SPREADSHEET_ID = '1EiMxqSbbN62BVtcP820IbWSFtLONNSdBGYGYl_4no40';
-var API_KEY = 'hivedesk-secure-key-2026';
+
+function getApiKey() {
+  return PropertiesService.getScriptProperties().getProperty('API_KEY') || '';
+}
+
+function doOptions(e) {
+  return ContentService.createTextOutput('').setMimeType(ContentService.MimeType.TEXT);
+}
 
 var SHEETS = {
   HiveDeskConfig: ['key','value','type','category','description','updatedBy','updatedAt','editableBy'],
@@ -18,7 +25,8 @@ var SHEETS = {
   HiveDeskStandups: ['id','personId','personName','date','yesterday','today','blockers','createdAt'],
   HiveDeskGoals: ['id','personId','personName','title','description','targetDate','status','progress','createdAt'],
   HiveDeskWrapped: ['id','personId','personName','weekOf','published','reviewed','hoursLogged','checkInCount','totalCreated','growth','createdAt'],
-  HiveDeskBadges: ['id','personId','personName','badgeId','badgeLabel','earnedAt']
+  HiveDeskBadges: ['id','personId','personName','badgeId','badgeLabel','earnedAt'],
+  HiveDeskSchema: ['id','field','type','required','constraints','defaultValue','description','updatedAt','updatedBy']
 };
 
 var DEFAULT_CONFIG = [
@@ -50,14 +58,10 @@ var DEFAULT_CONFIG = [
   {key:'question_id_counter',value:'0',type:'number',category:'system',description:'Sequential counter for question IDs',editableBy:'admin'}
 ];
 
-var ADMIN_EMAIL = 'himanshuyadav4596@gmail.com';
-var ADMIN_NAME = 'Himanshu Yadav';
-var ADMIN_PASSWORD = 'hivedesk-admin-2026';
-
 function doGet(e) {
   try {
     var key = (e.parameter.key || '').trim();
-    if (key !== API_KEY) return jsonResponse({error:'Unauthorized'},403);
+    if (key !== getApiKey()) return jsonResponse({error:'Unauthorized'},403);
     var ss = getSpreadsheet();
     ensureAllSheets(ss);
     seedAdminIfNeeded(ss);
@@ -102,20 +106,63 @@ function doPost(e) {
     var payload = JSON.parse(e.postData.contents);
     var key = payload.key;
     var action = payload.action;
-    if (key !== API_KEY) return jsonResponse({error:'Unauthorized'},403);
+    if (key !== getApiKey()) return jsonResponse({error:'Unauthorized'},403);
     var ss = getSpreadsheet();
     ensureAllSheets(ss);
     seedAdminIfNeeded(ss);
     seedConfigIfNeeded(ss);
     if (action === 'login') return handleLoginPost(payload, ss);
-    if (action === 'updateConfig') return handleUpdateConfig(payload, ss);
-    if (action === 'insert') return jsonResponse(insertRecord(ss, payload.type, payload.data));
-    if (action === 'update') return jsonResponse(updateRecord(ss, payload.type, payload.id, payload.data));
-    if (action === 'delete') return jsonResponse(deleteRecord(ss, payload.type, payload.id));
-    if (action === 'upsert') return jsonResponse(upsertRecords(ss, payload.type, payload.data || []));
-    if (action === 'bulkInsert') return jsonResponse(bulkInsert(ss, payload.type, payload.data || []));
+    var sessionUser = getSessionUser(payload.sessionToken);
+    if (action === 'updateConfig') {
+      if (!sessionUser || !validateRole(sessionUser.userId, 'admin')) return jsonResponse({error:'Admin role required'},403);
+      return handleUpdateConfig(payload, ss);
+    }
+    if (action === 'insert') {
+      if (!sessionUser) return jsonResponse({error:'Session required'},401);
+      return jsonResponse(insertRecord(ss, payload.type, payload.data));
+    }
+    if (action === 'update') {
+      if (!sessionUser) return jsonResponse({error:'Session required'},401);
+      return jsonResponse(updateRecord(ss, payload.type, payload.id, payload.data));
+    }
+    if (action === 'delete') {
+      if (!sessionUser || !validateRole(sessionUser.userId, 'lead')) return jsonResponse({error:'Lead role required'},403);
+      return jsonResponse(deleteRecord(ss, payload.type, payload.id));
+    }
+    if (action === 'upsert') {
+      if (!sessionUser) return jsonResponse({error:'Session required'},401);
+      return jsonResponse(upsertRecords(ss, payload.type, payload.data || []));
+    }
+    if (action === 'bulkInsert') {
+      if (!sessionUser || !validateRole(sessionUser.userId, 'lead')) return jsonResponse({error:'Lead role required'},403);
+      return jsonResponse(bulkInsert(ss, payload.type, payload.data || []));
+    }
     if (action === 'createNotification') return jsonResponse(createNotification(ss, payload.data));
     if (action === 'markNotificationsRead') return jsonResponse(markNotificationsRead(ss, payload.userId, payload.ids));
+    if (action === 'getSchema') return jsonResponse({data:getSheetRows(ss,'HiveDeskSchema')});
+    if (action === 'updateSchema') {
+      if (!sessionUser || !validateRole(sessionUser.userId, 'lead')) return jsonResponse({error:'Lead role required'},403);
+      return jsonResponse(upsertRecords(ss, 'HiveDeskSchema', payload.data || []));
+    }
+    if (action === 'assignBuddy') {
+      if (!sessionUser || !validateRole(sessionUser.userId, 'lead')) return jsonResponse({error:'Lead role required'},403);
+      return jsonResponse(assignBuddyPair(ss, payload.personAId, payload.personBId));
+    }
+    if (action === 'rotateBuddies') {
+      if (!sessionUser || !validateRole(sessionUser.userId, 'lead')) return jsonResponse({error:'Lead role required'},403);
+      return jsonResponse(rotateBuddyPairs(ss));
+    }
+    if (action === 'promoteUser') {
+      if (!sessionUser || !validateRole(sessionUser.userId, 'admin')) return jsonResponse({error:'Admin role required'},403);
+      return jsonResponse(promoteUser(ss, payload.userId, payload.newRole));
+    }
+    if (action === 'checkPromotions') {
+      if (!sessionUser || !validateRole(sessionUser.userId, 'lead')) return jsonResponse({error:'Lead role required'},403);
+      return jsonResponse(checkPromotions(ss));
+    }
+    if (action === 'getReviewer') {
+      return jsonResponse({reviewerId: getReviewerForImport(ss, payload.curatorId)});
+    }
     return jsonResponse({error:'Unknown action'},400);
   } catch(err) { return jsonResponse({error:err.message},500); }
 }
@@ -147,7 +194,8 @@ function authenticateUser(email, password, ss) {
           sheet.getRange(i+1, lastLoginIdx+1).setValue(new Date().toISOString());
         }
         delete user.password;
-        return jsonResponse({success:true, user:user});
+        var session = createSession(user);
+        return jsonResponse({success:true, user:session.user, sessionToken:session.token, expiresAt:session.expiresAt});
       } else {
         return jsonResponse({error:'Invalid password'},401);
       }
@@ -304,6 +352,7 @@ function getSpreadsheet() {
 }
 
 function ensureAllSheets(ss) {
+  if (!ss) return;
   Object.keys(SHEETS).forEach(function(sheetName) {
     var sheet = ss.getSheetByName(sheetName);
     if (!sheet) {
@@ -534,13 +583,17 @@ function seedAdminIfNeeded(ss) {
   if (!sheet) return;
   var vals = sheet.getDataRange().getValues();
   if (vals.length > 1) return;
+  var props = PropertiesService.getScriptProperties();
+  var adminEmail = props.getProperty('ADMIN_EMAIL') || 'admin@hros.local';
+  var adminName = props.getProperty('ADMIN_NAME') || 'Admin';
+  var adminPassword = props.getProperty('ADMIN_PASSWORD') || 'change-me-now';
   var headers = SHEETS.HiveDeskUsers;
   var rec = {};
   headers.forEach(function(h){rec[h]=''});
   rec.id = 'admin-001';
-  rec.email = ADMIN_EMAIL;
-  rec.name = ADMIN_NAME;
-  rec.password = ADMIN_PASSWORD;
+  rec.email = adminEmail;
+  rec.name = adminName;
+  rec.password = adminPassword;
   rec.role = 'admin';
   rec.domain = 'all';
   rec.isActive = 'true';
@@ -835,4 +888,187 @@ function jsonResponse(data, statusCode) {
   var output = ContentService.createTextOutput(JSON.stringify(data));
   output.setMimeType(ContentService.MimeType.JSON);
   return output;
+}
+
+var ROLE_HIERARCHY = { admin: 4, lead: 3, senior: 2, curator: 1, newcomer: 0 };
+
+function validateRole(userId, requiredRole) {
+  if (!userId || !requiredRole) return false;
+  var users = getSheetRows(getSpreadsheet(), 'HiveDeskUsers');
+  var user = users.find(function(u) { return u.id === userId; });
+  if (!user) return false;
+  var userLevel = ROLE_HIERARCHY[user.role] || 0;
+  var requiredLevel = ROLE_HIERARCHY[requiredRole] || 0;
+  return userLevel >= requiredLevel;
+}
+
+function getSessionUser(sessionToken) {
+  if (!sessionToken) return null;
+  var props = PropertiesService.getScriptProperties();
+  var sessionData = props.getProperty('session_' + sessionToken);
+  if (!sessionData) return null;
+  try {
+    var parsed = JSON.parse(sessionData);
+    var now = new Date().getTime();
+    if (parsed.expiresAt && now > parsed.expiresAt) {
+      props.deleteProperty('session_' + sessionToken);
+      return null;
+    }
+    return parsed;
+  } catch(e) { return null; }
+}
+
+function createSession(user) {
+  var token = Utilities.getUuid();
+  var props = PropertiesService.getScriptProperties();
+  var sessionData = {
+    userId: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    createdAt: new Date().getTime(),
+    expiresAt: new Date().getTime() + (30 * 24 * 60 * 60 * 1000)
+  };
+  props.setProperty('session_' + token, JSON.stringify(sessionData));
+  return { token: token, user: user, expiresAt: sessionData.expiresAt };
+}
+
+function assignBuddyPair(ss, personAId, personBId) {
+  var sheet = ss.getSheetByName('HiveDeskBuddyPairs');
+  if (!sheet) return {success:false, error:'Sheet not found'};
+  var users = getSheetRows(ss, 'HiveDeskUsers');
+  var personA = users.find(function(u){return u.id === personAId;});
+  var personB = users.find(function(u){return u.id === personBId;});
+  if (!personA || !personB) return {success:false, error:'User not found'};
+  var record = {
+    id: Utilities.getUuid(),
+    personAId: personAId,
+    personAName: personA.name || '',
+    personBId: personBId,
+    personBName: personB.name || '',
+    domain: personA.domain || personB.domain || '',
+    active: 'true',
+    createdAt: new Date().toISOString()
+  };
+  var headers = SHEETS.HiveDeskBuddyPairs;
+  var row = headers.map(function(h){return record[h]||''});
+  sheet.appendRow(row);
+  logAction(ss, 'system', 'assign_buddy', 'HiveDeskBuddyPairs', record.id, {personA: personAId, personB: personBId});
+  return {success:true, id:record.id};
+}
+
+function autoAssignBuddy(ss, curatorId) {
+  var users = getSheetRows(ss, 'HiveDeskUsers');
+  var curator = users.find(function(u){return u.id === curatorId;});
+  if (!curator) return null;
+  var buddyCeiling = getConfigValue(ss, 'buddy_review_ceiling') || 7;
+  var pairs = getSheetRows(ss, 'HiveDeskBuddyPairs');
+  var existingPair = pairs.find(function(p){
+    return p.active === 'true' && (p.personAId === curatorId || p.personBId === curatorId);
+  });
+  if (existingPair) {
+    var buddyId = existingPair.personAId === curatorId ? existingPair.personBId : existingPair.personAId;
+    var buddy = users.find(function(u){return u.id === buddyId;});
+    if (buddy && buddy.isActive === 'true') return buddyId;
+  }
+  var candidates = users.filter(function(u){
+    if (u.id === curatorId) return false;
+    if (u.isActive !== 'true') return false;
+    if (u.domain && curator.domain && u.domain !== curator.domain) return false;
+    return true;
+  });
+  if (candidates.length === 0) return null;
+  return candidates[0].id;
+}
+
+function getReviewerForImport(ss, curatorId) {
+  var buddyId = autoAssignBuddy(ss, curatorId);
+  if (buddyId) return buddyId;
+  var users = getSheetRows(ss, 'HiveDeskUsers');
+  var curator = users.find(function(u){return u.id === curatorId;});
+  var candidates = users.filter(function(u){
+    if (u.id === curatorId) return false;
+    if (u.isActive !== 'true') return false;
+    if (u.role === 'newcomer') return false;
+    if (curator && u.domain && curator.domain && u.domain !== curator.domain) return false;
+    return true;
+  });
+  if (candidates.length === 0) return null;
+  return candidates[0].id;
+}
+
+function rotateBuddyPairs(ss) {
+  var users = getSheetRows(ss, 'HiveDeskUsers');
+  var activeUsers = users.filter(function(u){
+    return u.isActive === 'true' && u.role !== 'newcomer' && u.role !== 'admin';
+  });
+  var pairs = getSheetRows(ss, 'HiveDeskBuddyPairs');
+  var pairsSheet = ss.getSheetByName('HiveDeskBuddyPairs');
+  if (!pairsSheet) return {success:false, error:'Sheet not found'};
+  pairs.forEach(function(p){
+    if (p.active === 'true') {
+      var vals = pairsSheet.getDataRange().getValues();
+      var headers = vals[0].map(function(h){return h.toString().trim()});
+      var idIdx = headers.indexOf('id');
+      for (var i = 1; i < vals.length; i++) {
+        if (vals[i][idIdx] === p.id) {
+          pairsSheet.getRange(i+1, headers.indexOf('active')+1).setValue('false');
+          break;
+        }
+      }
+    }
+  });
+  var used = {};
+  var newPairs = [];
+  activeUsers.forEach(function(u){
+    if (used[u.id]) return;
+    var match = activeUsers.find(function(c){
+      return c.id !== u.id && !used[c.id] && c.domain === u.domain;
+    });
+    if (!match) {
+      match = activeUsers.find(function(c){
+        return c.id !== u.id && !used[c.id];
+      });
+    }
+    if (match) {
+      assignBuddyPair(ss, u.id, match.id);
+      used[u.id] = true;
+      used[match.id] = true;
+      newPairs.push({a: u.name, b: match.name});
+    }
+  });
+  logAction(ss, 'system', 'rotate_buddies', 'HiveDeskBuddyPairs', null, {pairs: newPairs});
+  return {success:true, newPairs:newPairs};
+}
+
+function promoteUser(ss, userId, newRole) {
+  var users = getSheetRows(ss, 'HiveDeskUsers');
+  var user = users.find(function(u){return u.id === userId;});
+  if (!user) return {success:false, error:'User not found'};
+  var sheet = ss.getSheetByName('HiveDeskUsers');
+  if (!sheet) return {success:false, error:'Sheet not found'};
+  var vals = sheet.getDataRange().getValues();
+  var headers = vals[0].map(function(h){return h.toString().trim()});
+  var idIdx = headers.indexOf('id');
+  var roleIdx = headers.indexOf('role');
+  for (var i = 1; i < vals.length; i++) {
+    if (vals[i][idIdx] === userId) {
+      sheet.getRange(i+1, roleIdx+1).setValue(newRole);
+      logAction(ss, userId, 'promote', 'HiveDeskUsers', userId, {from: user.role, to: newRole});
+      return {success:true, from:user.role, to:newRole};
+    }
+  }
+  return {success:false, error:'Record not found'};
+}
+
+function checkPromotions(ss) {
+  var users = getSheetRows(ss, 'HiveDeskUsers');
+  var promoted = [];
+  users.forEach(function(u){
+    if (u.role === 'newcomer' && u.questionsApproved && Number(u.questionsApproved) >= 1) {
+      promoteUser(ss, u.id, 'curator');
+      promoted.push({name: u.name, from: 'newcomer', to: 'curator'});
+    }
+  });
+  return {success:true, promoted: promoted};
 }

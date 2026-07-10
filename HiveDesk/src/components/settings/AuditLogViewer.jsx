@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Shield, Search, RefreshCw, Download, Lock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Shield, Search, RefreshCw, Lock } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { useRBAC } from '../../auth/RBAC';
 import { useRefreshSignal } from '../../auth/RefreshContext';

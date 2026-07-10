@@ -1,5 +1,4 @@
-import React from 'react';
-import { Rocket, Calendar, Target } from 'lucide-react';
+import { Rocket, Calendar } from 'lucide-react';
 import { formatDate } from '../../utils/helpers';
 
 export default function SprintStats({ sprint }) {

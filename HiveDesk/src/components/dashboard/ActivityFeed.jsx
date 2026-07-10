@@ -1,4 +1,3 @@
-import React from 'react';
 import { formatDateTime } from '../../utils/helpers';
 import { FileCode2, UserPlus, CheckCircle2, AlertTriangle, ClipboardCheck, TrendingUp, Eye } from 'lucide-react';
 
@@ -29,7 +28,7 @@ function describeAction(entry) {
   const resource = RESOURCE_LABELS[entry.resource] || entry.resource || '';
   const details = entry.details ? (typeof entry.details === 'string' ? entry.details : JSON.stringify(entry.details)) : '';
   let parsed = {};
-  try { parsed = JSON.parse(details); } catch {}
+  try { parsed = JSON.parse(details); } catch { /* ignore */ }
 
   if (action === 'insert' && resource) return `Created ${resource}`;
   if (action === 'update' && resource) return `Updated ${resource}`;

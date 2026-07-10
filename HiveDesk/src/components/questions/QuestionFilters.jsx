@@ -1,4 +1,3 @@
-import React from 'react';
 import { Filter, X } from 'lucide-react';
 
 export default function QuestionFilters({ filters, onChange, domains }) {

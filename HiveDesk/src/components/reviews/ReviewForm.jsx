@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, Save, Star } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { useAuth } from '../../auth/AuthContext';
 import { useConfig } from '../../config/ConfigContext';
+import { useNotifications } from '../../auth/Notifications';
 import { generateId, calculateQualityScore } from '../../utils/helpers';
 
 function StarRating({ value, onChange, label }) {
@@ -25,6 +26,7 @@ function StarRating({ value, onChange, label }) {
 export default function ReviewForm({ question, onClose, onSaved }) {
   const { user } = useAuth();
   const { config } = useConfig();
+  const { notify } = useNotifications();
   const [form, setForm] = useState({
     accuracyScore: 0,
     completenessScore: 0,
@@ -59,6 +61,19 @@ export default function ReviewForm({ question, onClose, onSaved }) {
         revisionCount: 0,
         reviewedAt: new Date().toISOString(),
       });
+      if (question.creatorId) {
+        notify({
+          userId: question.creatorId,
+          type: 'review',
+          title: 'Review Submitted',
+          message: `${user.name} reviewed "${question.title}" — Score: ${overallScore.toFixed(1)}/5`,
+          resourceId: question.id,
+          resourceType: 'question',
+          fromUserId: user.id,
+          fromUserName: user.name,
+          link: 'reviews'
+        });
+      }
       onSaved?.();
       onClose?.();
     } catch (e) { setError(e.message); }

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, Users, Target, Award, Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { BarChart3, TrendingUp, Target, Award } from 'lucide-react';
 import { HiveDeskStorage } from '../../services/HiveDeskStorage';
 import { getInitials } from '../../utils/helpers';
 
@@ -15,18 +15,16 @@ export default function TeamAnalytics() {
   const [questions, setQuestions] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [sprints, setSprints] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('leaderboard');
 
   useEffect(() => {
     (async () => {
       const raw = await HiveDeskStorage.fetchAll();
-      if (!raw) { setLoading(false); return; }
+      if (!raw) { return; }
       setUsers(Array.isArray(raw.HiveDeskUsers) ? raw.HiveDeskUsers : []);
       setQuestions(Array.isArray(raw.HiveDeskQuestions) ? raw.HiveDeskQuestions : []);
       setReviews(Array.isArray(raw.HiveDeskReviews) ? raw.HiveDeskReviews : []);
       setSprints(Array.isArray(raw.HiveDeskSprints) ? raw.HiveDeskSprints : []);
-      setLoading(false);
     })();
   }, []);
 
@@ -76,8 +74,6 @@ export default function TeamAnalytics() {
     actual: Number(s.actualQuestions) || 0,
     published: Number(s.publishedCount) || 0,
   }));
-
-  const maxBarValue = Math.max(...memberStats.map(m => m.publishedCount), 1);
 
   return (
     <div className="space-y-4">

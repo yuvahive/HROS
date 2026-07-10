@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Clock, Plus, Trash2, Download } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Clock, Plus, Trash2 } from 'lucide-react';
 import WorkLogForm from './WorkLogForm';
 import { getWorkLogs, deleteWorkLog } from '../../services/workLogService';
 import { useAuth } from '../../auth/AuthContext';
