@@ -1,6 +1,7 @@
 import { RefreshCw, Cloud, CloudOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import NotificationBell from '../notifications/NotificationBell';
+import PageInfoButton from '../shared/PageInfoButton';
 
 const STATUS_MAP = {
   online: { icon: Cloud, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Connected' },
@@ -9,7 +10,7 @@ const STATUS_MAP = {
   error: { icon: CloudOff, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', label: 'Error' },
 };
 
-export default function Header({ title, subtitle, onRefresh, loading, onToggleSidebar }) {
+export default function Header({ title, subtitle, onRefresh, loading, onToggleSidebar, activePage }) {
   const { cloudStatus } = useAuth();
   const st = STATUS_MAP[cloudStatus] || STATUS_MAP.offline;
   const StatusIcon = st.icon;
@@ -32,6 +33,7 @@ export default function Header({ title, subtitle, onRefresh, loading, onToggleSi
       </div>
 
       <div className="flex items-center gap-2 flex-shrink-0">
+        <PageInfoButton activePage={activePage} />
         <NotificationBell />
 
         <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border ${st.bg} ${st.color} ${st.border}`}>

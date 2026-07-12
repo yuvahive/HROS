@@ -48,6 +48,7 @@ export default function Layout({ children, title, subtitle, onRefresh, loading, 
           onRefresh={onRefresh}
           loading={loading}
           onToggleSidebar={() => setMobileOpen(true)}
+          activePage={activePage}
         />
 
         <main className="flex-1 overflow-y-auto">
