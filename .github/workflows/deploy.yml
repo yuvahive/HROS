@@ -35,6 +35,8 @@ jobs:
         env:
           VITE_GAS_URL: ${{ secrets.VITE_GAS_URL }}
           VITE_GAS_API_KEY: ${{ secrets.VITE_GAS_API_KEY }}
+          VITE_HIVEDESK_GAS_URL: ${{ secrets.VITE_HIVEDESK_GAS_URL }}
+          VITE_HIVEDESK_GAS_API_KEY: ${{ secrets.VITE_HIVEDESK_GAS_API_KEY }}
           VITE_WORK_FOLDER_ID: ${{ secrets.VITE_WORK_FOLDER_ID }}
 
       - name: Upload artifact

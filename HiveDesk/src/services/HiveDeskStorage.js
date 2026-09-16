@@ -1,5 +1,5 @@
-const GAS_URL = import.meta.env.VITE_GAS_URL;
-const GAS_API_KEY = import.meta.env.VITE_GAS_API_KEY;
+const GAS_URL = import.meta.env.VITE_HIVEDESK_GAS_URL;
+const GAS_API_KEY = import.meta.env.VITE_HIVEDESK_GAS_API_KEY;
 const FETCH_TIMEOUT = 30000;
 const UPDATE_TIMEOUT = 15000;
 const CACHE_TTL = 30000;

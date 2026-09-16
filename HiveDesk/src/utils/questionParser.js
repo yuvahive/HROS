@@ -226,8 +226,8 @@ export async function parseZipFile(file, liveSchema = null) {
 
 export async function getLiveSchema() {
   try {
-    const GAS_URL = import.meta.env.VITE_GAS_URL;
-    const GAS_API_KEY = import.meta.env.VITE_GAS_API_KEY;
+    const GAS_URL = import.meta.env.VITE_HIVEDESK_GAS_URL;
+    const GAS_API_KEY = import.meta.env.VITE_HIVEDESK_GAS_API_KEY;
     const response = await fetch(`${GAS_URL}?key=${GAS_API_KEY}&action=getSchema`);
     const result = await response.json();
     if (result.data && result.data.length > 0) {

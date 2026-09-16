@@ -70,8 +70,8 @@ export function AuthProvider({ children }) {
 
   const loadFromCloud = async (isSilent = false) => {
     if (!isSilent) setCloudStatus('syncing');
-    console.log('[HiveDesk] GAS_URL:', import.meta.env.VITE_GAS_URL);
-    console.log('[HiveDesk] GAS_API_KEY:', import.meta.env.VITE_GAS_API_KEY ? 'set' : 'MISSING');
+    console.log('[HiveDesk] GAS_URL:', import.meta.env.VITE_HIVEDESK_GAS_URL);
+    console.log('[HiveDesk] GAS_API_KEY:', import.meta.env.VITE_HIVEDESK_GAS_API_KEY ? 'set' : 'MISSING');
 
     try {
       const cloudData = await HiveDeskStorage.fetchAll();
@@ -121,8 +121,8 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     try {
-      const GAS_URL = import.meta.env.VITE_GAS_URL;
-      const GAS_API_KEY = import.meta.env.VITE_GAS_API_KEY;
+      const GAS_URL = import.meta.env.VITE_HIVEDESK_GAS_URL;
+      const GAS_API_KEY = import.meta.env.VITE_HIVEDESK_GAS_API_KEY;
       const response = await fetch(`${GAS_URL}?key=${GAS_API_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
